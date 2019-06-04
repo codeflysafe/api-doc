@@ -6,8 +6,8 @@ package com.hsjfans.github.parser;
  *
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
-public interface parser {
+public interface Parser {
 
-
+   void parser(Class<?> cl) throws ParserException;
 
 }
