@@ -22,7 +22,25 @@ The man reason is that i want a easy and non-invasive tool.
 
 ## how to use ? 
 
+### generate Html
 
+```java
+
+
+
+```
+
+### generate json
+
+```java
+
+```
+
+### sync api to yapi
+
+```java
+
+```
 
 
 
@@ -33,3 +51,6 @@ dependencies:
 
 - [javaParser](https://github.com/javaparser/javaparser)
 
+- [yapi](https://github.com/YMFE/yapi)
+
+- git hook
