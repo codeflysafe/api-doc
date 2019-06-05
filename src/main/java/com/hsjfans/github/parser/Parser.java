@@ -8,6 +8,8 @@ package com.hsjfans.github.parser;
  */
 public interface Parser {
 
-   void parser(Class<?> cl) throws ParserException;
+   void parse(Class<?> cl) throws ParserException;
+
+
 
 }
