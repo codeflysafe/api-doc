@@ -94,7 +94,7 @@ public class ClassUtils {
 
     public static void main(String[] args) throws ClassNotFoundException {
         for(File file:scan("/Volumes/doc/projects/java/api",true)){
-            System.out.println(file.getPath());
+           System.out.println(parseJavaFile(file).getPrimaryType().get().getFields());
         }
 
 
