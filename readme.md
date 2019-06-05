@@ -1,13 +1,35 @@
 # api-doc
 
-![](https://raw.githubusercontent.com/hsjfans/git_resource/master/20190605070555.png)
-
 
 ## Aim
 
 This repository aim to auto-generate the web api 
 document。 
 
-Now just support `Java SpringMVC`
+- easy to use
+- non-invasive for Java source
 
+Meantime , this support to generate the Json source 
+for export to `yapi`. It works via the scripts provided also.
+
+
+## Why
+
+There are so many brilliant project for java-api-doc generator,why another project to be done.
+
+The man reason is that i want a easy and non-invasive tool.
+
+
+## how to use ? 
+
+
+
+
+
+
+## Reference 
+
+dependencies:
+
+- [javaParser](https://github.com/javaparser/javaparser)
 
