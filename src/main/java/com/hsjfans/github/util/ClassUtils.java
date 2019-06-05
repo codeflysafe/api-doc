@@ -1,33 +1,37 @@
 package com.hsjfans.github.util;
 
 
-import com.hsjfans.github.annotation.Api;
-import lombok.extern.slf4j.Slf4j;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.expr.AnnotationExpr;
 
 import java.io.File;
-import java.net.URL;
+import java.io.FileNotFoundException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-@Slf4j
 public class ClassUtils {
 
     private static final ClassLoader loader = ClassUtils.class.getClassLoader();
 
     /**
      *
-     * @param packageName the package name
+     * find all java source from project
+     *
+     * @param packageName the java source path name
      * @param recursion scan recursion or not
      * @return
      */
-	public static Set<String> scan(String packageName,boolean recursion){
-        Set<String> classNames = new HashSet<>();
-	    URL url = loader.getResource(packageName.replace(".","/"));
-	    if(url!=null&&url.getProtocol().equals("file")){
-            classNames.addAll(scanDir(url.getPath(),packageName,recursion));
+	public static Set<File> scan(String packageName,boolean recursion){
+        Set<File> javaFiles = new HashSet<>();
+	    File file = new File(packageName);
+
+	    if(file.isDirectory()){
+            javaFiles.addAll(scanDir(file.getPath(),recursion));
         }
-	    return classNames;
+	    return javaFiles;
     }
 
     /**
@@ -36,47 +40,66 @@ public class ClassUtils {
      * @param recursion scan recursion or not
      * @return
      */
-    public static Set<String> scan(Collection<String> packageNames, boolean recursion){
-        Set<String> classNames = new HashSet<>();
+    public static Set<File> scan(Collection<String> packageNames, boolean recursion){
+        Set<File> javaFiles = new HashSet<>();
 	    for(String packageName:packageNames){
-	        classNames.addAll(scan(packageName,recursion));
+            javaFiles.addAll(scan(packageName,recursion));
         }
-	    return classNames;
+	    return javaFiles;
     }
 
 
     /**
      *
      * @param filePath the filePath
-     * @param packageName the packageName
      * @param recursion scan recursion or not
      */
-    private static Set<String> scanDir(String filePath,String packageName,boolean recursion){
-        Set<String> classNames = new HashSet<>();
+    private static Set<File> scanDir(String filePath,boolean recursion){
+        Set<File> javaFiles = new HashSet<>();
         File file = new File(filePath);
         File[] files = file.listFiles();
-        if(files==null){return classNames;}
+        if(files==null){return javaFiles;}
         for(File f:files){
             if(f.isDirectory()&&recursion){
-                classNames.addAll(scanDir(f.getPath(),packageName+"."+f.getName(),recursion));
+                javaFiles.addAll(scanDir(f.getPath(),recursion));
             }else {
-                if(f.getName().endsWith(".class")){
-                    classNames.add(packageName+"."+f.getName().replace(".class",""));
+                if(f.getName().endsWith(".java")){
+                    javaFiles.add(f);
                 }
             }
         }
-        return classNames;
+        return javaFiles;
     }
+
+
+    /**
+     *  parse java source
+     * @param javaFile file
+     * @return CompilationUnit
+     * @see CompilationUnit
+     */
+    public static CompilationUnit parseJavaFile(File javaFile){
+        CompilationUnit compilationUnit = null;
+        try {
+            compilationUnit = StaticJavaParser.parse(javaFile);
+        } catch (FileNotFoundException e) {
+            LogUtil.warn(" parseJavaFile javaFile "+javaFile.getName()+" failed");
+        }
+        return compilationUnit;
+    }
+
+
+
 
 
     public static void main(String[] args) throws ClassNotFoundException {
-        for(String className:scan("com.hsjfans.github.annotation",false)){
-            Class<?> cl = loader.loadClass(className);
-            System.out.println(cl.getSimpleName());
+        for(File file:scan("/Volumes/doc/projects/java/api",true)){
+            System.out.println(file.getPath());
         }
+
+
+
     }
-
-
 
 
 

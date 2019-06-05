@@ -1,85 +1,41 @@
 package com.hsjfans.github.parser;
 
-import com.google.common.collect.Sets;
-import com.hsjfans.github.annotation.Api;
-import com.hsjfans.github.annotation.ApiDoc;
-import com.hsjfans.github.annotation.Ignore;
-import com.hsjfans.github.util.CollectionUtil;
-import lombok.extern.slf4j.Slf4j;
+import com.github.javaparser.ast.CompilationUnit;
+import com.hsjfans.github.util.ClassUtils;
+import com.hsjfans.github.util.LogUtil;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
+import java.io.File;
+import java.util.List;
 import java.util.Set;
 
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
-@Slf4j
+
 public abstract class AbstractParser implements Parser  {
+
+
 
     protected abstract Set<String> supportClassAnnotations();
 
+    protected abstract Set<CompilationUnit> getAllControllerClass(Set<File> javaFiles);
+
+    protected abstract void parseCompilationUnit(CompilationUnit compilationUnit);
+
+
     @Override
-    public void parse(Class<?> cl) throws ParserException {
-
-        Annotation[] annotations = cl.getAnnotations();
-        Set<String> annotationStrs = CollectionUtil.annotationsToSet(annotations);
-        if(Sets.intersection(CollectionUtil.annotationsToSet(annotations),supportClassAnnotations()).size()==0){
-
-            // todo add log
-            throw new ParserException(" 不支持的类型"+cl.getName());
-        }
-
-        boolean contain = CollectionUtil.contain(annotations,ApiDoc.class);
-
-        Method[] methods =  cl.getMethods();
-        for(Method method:methods){
-           if(contain){
-               parseApiDocMethod(method);
-           }else {
-               parseApiMethod(method);
-           }
-        }
-
-    }
-
-    /**
-     * parse the method with @ApiDoc
-     * @param method method
-     */
-    private void parseApiDocMethod(Method method){
-       Annotation[] annotations =  method.getAnnotations();
-       if(CollectionUtil.contain(annotations, Ignore.class)){
-           return;
-       }
-       parseMethod(method);
+    public void parse(String projectPath,boolean recursive) throws ParserException {
+        LogUtil.info("开始解析 projectPath# "+projectPath);
+        Set<File> javaFiles =  ClassUtils.scan(projectPath,true);
+        Set<CompilationUnit> compilationUnits =  getAllControllerClass(javaFiles);
+        compilationUnits.forEach(this::parseCompilationUnit);
     }
 
 
-    /**
-     *
-     * parse the method no @ApiDoc
-     *
-     * @param method method
-     */
-    private void parseApiMethod(Method method){
-
-        Annotation[] annotations =  method.getAnnotations();
-        if(!CollectionUtil.contain(annotations, Api.class)){
-           return;
-        }
-        parseMethod(method);
-    }
-
-
-    /**
-     * parse method
-     * @param method method
-     */
-    private void parseMethod(Method method){
-
-
+    @Override
+    public void parse(List<String> projectPaths, boolean recursive) throws ParserException {
 
     }
+
 
 }
