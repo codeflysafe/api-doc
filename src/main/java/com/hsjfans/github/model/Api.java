@@ -1,49 +1,39 @@
 package com.hsjfans.github.model;
 
-import com.hsjfans.github.util.Constant;
-import lombok.Data;
-
-import java.io.Serializable;
-
 /**
- *
- * the api Info
- *
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
-@Data
-public class Api implements Serializable {
+public class Api {
 
     /**
-     *  api 名称
-     */
-    private String title;
-
-    /**
-     * api method
-     */
-    private Constant.RequestMethod method;
-
-
-    /**
-     *
-     * the api url
-     *
+     *  api url
      */
     private String url;
 
+    /**
+     *  the api name
+     */
+    private String name;
+
 
     /**
-     *  返回数据
+     *  the comment
      */
-    private ResponseEntity responseEntity;
+    private Comment comment;
 
 
     /**
-     *  请求参数
+     *
+     *  the name of package
+     *
      */
-    private RequestEntity requestEntity;
+    private String packageName;
 
+
+    /**
+     *  the controller method name
+     */
+    private String methodName;
 
 
 

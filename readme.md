@@ -36,7 +36,7 @@ The man reason is that i want a easy and non-invasive tool.
 
 ```
 
-### sync api to yapi
+### sync api to YApi
 
 ```java
 
@@ -54,3 +54,5 @@ dependencies:
 - [yapi](https://github.com/YMFE/yapi)
 
 - git hook
+
+- mock

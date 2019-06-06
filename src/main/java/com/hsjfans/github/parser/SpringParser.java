@@ -2,11 +2,13 @@ package com.hsjfans.github.parser;
 
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import com.google.common.collect.Sets;
 import com.hsjfans.github.util.ClassUtils;
 import com.hsjfans.github.util.Constant;
 
 import java.io.File;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -44,7 +46,15 @@ public class SpringParser extends AbstractParser{
     @Override
     protected void parseCompilationUnit(CompilationUnit compilationUnit) {
 
+        Optional<TypeDeclaration<?>> typeDeclaration = compilationUnit.getPrimaryType();
 
+        if(typeDeclaration.isPresent()){
+            typeDeclaration.get().getMethods().forEach(
+                    a->{
+                        a.getComment().get();
+                    }
+            );
+        }
 
     }
 
