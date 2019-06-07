@@ -1,8 +1,10 @@
 package com.hsjfans.github.util;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import java.lang.annotation.Annotation;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -33,4 +35,14 @@ public class CollectionUtil {
         }
         return false;
     }
+
+
+    public static Map<Class<?>,Annotation> convertToMap(Annotation[] annotations){
+        Map<Class<?>,Annotation> annotationMap = Maps.newConcurrentMap();
+        for(Annotation annotation:annotations){
+           annotationMap.put(annotation.getClass(),annotation);
+        }
+        return annotationMap;
+    }
+
 }

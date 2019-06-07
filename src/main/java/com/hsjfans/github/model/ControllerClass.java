@@ -7,6 +7,9 @@ import java.io.Serializable;
  */
 public class ControllerClass implements Serializable {
 
+
+    private Class<?> aClass;
+
     /**
      *  the class name `@name`
      */
@@ -28,6 +31,15 @@ public class ControllerClass implements Serializable {
      */
     @Deprecated
     private Constant.RequestMethod[] methods;
+
+
+    /**
+     *
+     */
+    private ControllerMethod controllerMethod;
+
+
+
 
 
 }

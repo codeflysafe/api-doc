@@ -1,6 +1,7 @@
 package com.hsjfans.github.parser;
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.hsjfans.github.model.ApiTree;
 
 import java.util.List;
 
@@ -21,7 +22,7 @@ public interface Parser {
     * @param recursive recursive scan or not
     * @throws ParserException
     */
-   void parse(String projectPath,boolean recursive) throws ParserException;
+   ApiTree parse(String projectPath, boolean recursive) throws ParserException;
 
 
    /**
@@ -33,7 +34,7 @@ public interface Parser {
     * @param recursive recursive scan or not
     * @throws ParserException
     */
-   void parse(List<String> projectPaths,boolean recursive) throws ParserException;
+   ApiTree parse(List<String> projectPaths,boolean recursive) throws ParserException;
 
 
 

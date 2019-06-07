@@ -8,14 +8,8 @@ version '1.0-SNAPSHOT'
 sourceCompatibility = 1.8
 
 repositories {
-    // using the local
-    if (project.version.endsWith('-SNAPSHOT')) {
-        mavenLocal()
-    }
-    else {
-        mavenCentral()
-    }
-
+    mavenLocal()
+    mavenCentral()
 }
 
 dependencies {
@@ -23,4 +17,7 @@ dependencies {
     compile 'com.google.guava:guava:27.1-jre'
     compileOnly "org.projectlombok:lombok:1.16.16"
     implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.14.4-SNAPSHOT'
+    // https://mvnrepository.com/artifact/org.springframework/spring-webmvc
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
 }

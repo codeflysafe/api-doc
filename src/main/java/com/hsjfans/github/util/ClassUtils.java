@@ -6,6 +6,9 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.javadoc.Javadoc;
+import com.github.javaparser.javadoc.JavadocBlockTag;
+import com.hsjfans.github.model.ControllerClass;
 import com.hsjfans.github.model.Param;
 
 import java.io.File;
@@ -136,13 +139,18 @@ public class ClassUtils {
      * @param cl @Ignore
      * @return
      */
-    public static Param parseClassComment(Comment comment,Class<?> cl){
+    public static ControllerClass parseClassComment(Comment comment, Class<?> cl){
         if(comment==null){return null;}
+        Javadoc javadoc = comment.parse();
+        javadoc.getBlockTags().forEach(
+                a->{
+                    if(!a.getTagName().equals(JavadocBlockTag.Type.IGNORE
+                    &&a.getTagName().equals())){
 
-        CommentUtil.parseParam(comment);
+                    }
+                }
+        );
 
-        //  todo
-        return null;
     }
 
 

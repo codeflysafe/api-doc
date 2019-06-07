@@ -28,9 +28,7 @@ public class CommentUtil {
     public static List<Map<String,String>> parseParam(Comment comment){
 
         Javadoc javadoc = comment.parse();
-        System.out.println(comment.getContent());
-        System.out.println(javadoc.getBlockTags());
-        System.out.println("\n");
+
 
         return null;
 

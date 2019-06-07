@@ -12,6 +12,7 @@ public class Constant {
     public static final String SPRING_REQUEST_MAPPING = "RequestMapping";
 
 
+
     public static enum RequestMethod{
         GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, TRACE
     }
