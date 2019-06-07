@@ -5,6 +5,9 @@ package com.hsjfans.github.model;
  */
 public class Constant {
 
+    /**
+     *  the request method
+     */
     public static enum RequestMethod{
         GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, TRACE
     }

@@ -22,26 +22,59 @@ The man reason is that i want a easy and non-invasive tool.
 
 ## how to use ? 
 
-### generate Html
+
+
+### Java Doc Standard
+
+### method
+
+- `@param` : the parameter of method
+- `@return` : the return info
+
+
+
+### Extend Java Doc 
+
+#### `@necessary`:
+> The parameter is necessary or not for current method ;
+  
+   - `ethod`
+   
+#### `@ignore`: 
+> The filed or the method will be ignore or not ;
+  
+   - `Field`,`Class`,`Method` ,`Parameter` 
+   
+In filed:
+
 
 ```java
 
-
-
-```
-
-### generate json
-
-```java
-
-```
-
-### sync api to YApi
-
-```java
+   // line tag
+   /**
+   * @ignore
+   * /
+   private int number;
+   
+   // inline tag
+   /**
+   * @param {@ignore} {@fuzzy}
+   */
 
 ```
 
+
+
+  
+    
+#### `@name` 
+> the name of current entity(contains class,method )
+    - `Method`,`class`
+
+
+## TODO LIST
+
+- Extend  the Java doc
 
 
 
@@ -55,4 +88,4 @@ dependencies:
 
 - git hook
 
-- mock
+- [java doc](https://docs.oracle.com/javase/8/docs/technotes/tools/windows/javadoc.html)

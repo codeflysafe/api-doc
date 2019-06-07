@@ -2,10 +2,15 @@ package com.hsjfans.github.parser;
 
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.javadoc.description.JavadocInlineTag;
 import com.google.common.collect.Sets;
+import com.hsjfans.github.model.Param;
 import com.hsjfans.github.util.ClassUtils;
+import com.hsjfans.github.util.CommentUtil;
 import com.hsjfans.github.util.Constant;
+import com.hsjfans.github.util.LogUtil;
 
 import java.io.File;
 import java.util.Optional;
@@ -15,6 +20,9 @@ import java.util.Set;
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
 public class SpringParser extends AbstractParser{
+
+
+    private static final ClassLoader classLoader   = AbstractParser.class.getClassLoader();
 
     // 支持的 Controller 类注解
     private static final Set<String> supportClassAnnotations = Sets.newHashSet("RestController","Controller");
@@ -45,16 +53,27 @@ public class SpringParser extends AbstractParser{
 
     @Override
     protected void parseCompilationUnit(CompilationUnit compilationUnit) {
-
-        Optional<TypeDeclaration<?>> typeDeclaration = compilationUnit.getPrimaryType();
-
-        if(typeDeclaration.isPresent()){
-            typeDeclaration.get().getMethods().forEach(
-                    a->{
-                        a.getComment().get();
-                    }
-            );
+        Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
+        if(!packageDeclaration.isPresent()){
+            return;
         }
+        String packageName = packageDeclaration.get().getNameAsString();
+        Optional<TypeDeclaration<?>> typeDeclaration = compilationUnit.getPrimaryType();
+        if(!typeDeclaration.isPresent()){
+            return;
+        }
+        String className = packageName+"."+typeDeclaration.get().getName();
+        Class<?> cl ;
+        try {
+             cl = classLoader.loadClass(className);
+        }catch (Exception e){
+            LogUtil.warn(e.getMessage());
+            return;
+        }
+
+        Param param = ClassUtils.parseClassComment(typeDeclaration.get().getComment().orElse(null),cl);
+
+
 
     }
 

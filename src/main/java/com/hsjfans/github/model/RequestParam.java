@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 /**
  *
  * An atomic class to mapped the params who are the fields of an entity ( contains the warp ) or
@@ -17,7 +19,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Param {
+public class RequestParam implements Serializable {
 
 
     /**
@@ -25,12 +27,17 @@ public class Param {
      */
     private String name;
 
+
     /**
-     *  contain "@ignore"
-     *
-     *  necessary param or not default necessary
+     *  the regex pattern `@regex '^1{3,4,5,6,7,8}[0-9]{9}$'`
      */
-    private boolean ignore = true;
+    private String regex;
+
+
+    /**
+     *  the type of param
+     */
+    private String type;
 
 
     /**
@@ -41,6 +48,12 @@ public class Param {
     private boolean fuzzy = false;
 
 
+    /**
+     *  is necessary or not
+     */
+    private boolean necessary = true;
+
+
 
     /**
      *  the description
@@ -49,15 +62,9 @@ public class Param {
 
 
     /**
-     *  the support request methods
-     */
-    private Constant.RequestMethod[] requestMethods;
-
-
-    /**
      *  Collection  class
      */
-    private Param[] params;
+    private RequestParam[] params;
 
 
 

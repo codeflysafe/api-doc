@@ -3,20 +3,16 @@ package com.hsjfans.github.util;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Node;
-import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.PackageDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.comments.Comment;
-import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.hsjfans.github.model.Param;
-import com.hsjfans.github.model.Return;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.*;
 
 public class ClassUtils {
 
@@ -59,7 +55,7 @@ public class ClassUtils {
      *
      * 扫描项目
      *
-     * @param filePath | @ignore | the filePath
+     * @param filePath filePath
      * @param recursion scan recursion or not
      */
     private static Set<File> scanDir(String filePath,boolean recursion){
@@ -100,17 +96,11 @@ public class ClassUtils {
     /**
      *  parse the method  comment to Param
      * @param comment
-     * @param parameters
+     * @param method
      * @return
      */
-    public static Param parseMethodComment(Comment comment, NodeList<Parameter> parameters){
+    public static Param parseMethodComment(Comment comment, Method method){
 
-        //  todo
-        return null;
-    }
-
-
-    public static Return parseMethodReturn(){
         //  todo
         return null;
     }
@@ -119,22 +109,39 @@ public class ClassUtils {
     /**
      *  parse the method  comment to Param
      * @param comment
+     * @param returnType
      * @return
      */
-    public static Param parseFieldComment(Comment comment){
+    public static Return parseMethodReturn(Comment comment,Class<?> returnType){
+        //  todo
+        return null;
+    }
+
+
+    /**
+     *  parse the method  comment to Param
+     * @param comment comment {@ignore}
+     * @param field filed
+     * @return
+     */
+    public static Param parseFieldComment(Comment comment, Field field){
 
         //  todo
         return null;
     }
 
     /**
-     *  parse the method  comment to Param
-     * @param comment
+     * @name parse the method  comment to Param
+     * @param comment @Ignore
+     * @param cl @Ignore
      * @return
      */
-    public static Param parseClassComment(Comment comment){
+    public static Param parseClassComment(Comment comment,Class<?> cl){
+        if(comment==null){return null;}
 
-       //  todo
+        CommentUtil.parseParam(comment);
+
+        //  todo
         return null;
     }
 
@@ -144,25 +151,44 @@ public class ClassUtils {
     }
 
 
-
+    /**
+     * @see #toString()
+     * @param args args
+     * @throws ClassNotFoundException
+     */
     public static void main(String[] args) throws ClassNotFoundException {
-        for(File file:scan("/Volumes/doc/projects/java/api",true)){
+        String testPath = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github";
+        String realPath = "/Volumes/doc/projects/java/api";
+        String tets2Path = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github/model";
+        for(File file:scan(tets2Path,true)){
             CompilationUnit compilationUnit = parseJavaFile(file);
-            System.out.println( compilationUnit.getPackageDeclaration().get().getName());
-            if(compilationUnit.getPrimaryType().isPresent()){
-               System.out.println(compilationUnit.getPrimaryType().get().getName());
-//                compilationUnit.getPrimaryType().get().getMethods().forEach(a->{
-//                   if(a.getComment().isPresent()){
-//                      Comment comment = a.getComment().get();
-////                      System.out.println(comment.getContent());
-////                      System.out.println(a.getParameters());
-//                      if(a.getType().isClassOrInterfaceType()){
-//                          System.out.println( a.getType().asClassOrInterfaceType().removeScope());
-//                      }
-//
-//                   }
-//                });
+            Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
+            if(!packageDeclaration.isPresent()){
+                return;
             }
+            String packageName = packageDeclaration.get().getNameAsString();
+            Optional<TypeDeclaration<?>> typeDeclaration = compilationUnit.getPrimaryType();
+            if(!typeDeclaration.isPresent()){
+                return;
+            }
+            String className = packageName+"."+typeDeclaration.get().getName();
+
+            Class<?> c = loader(className);
+//            c.getMethods()[0].getParameters();
+//            System.out.println(typeDeclaration.get().getComment());
+//            System.out.println(compilationUnit.getPrimaryType().get());
+//            parseClassComment(typeDeclaration.get().getComment().orElse(null),null);
+
+            // parse method
+//            typeDeclaration.get().getMethods().forEach(m->{
+//               parseClassComment( m.getComment().orElse(null),null);
+//            });
+
+
+            typeDeclaration.get().getFields().forEach(a->{
+                parseClassComment(a.getComment().orElse(null),null);
+            });
+
         }
 
 
