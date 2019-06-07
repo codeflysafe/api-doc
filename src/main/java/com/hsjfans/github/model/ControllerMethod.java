@@ -1,11 +1,16 @@
 package com.hsjfans.github.model;
 
+import com.hsjfans.github.util.StringUtil;
+import lombok.Data;
+import org.springframework.web.bind.annotation.RequestMethod;
+
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
+@Data
 public class ControllerMethod implements Serializable {
 
 
@@ -18,7 +23,7 @@ public class ControllerMethod implements Serializable {
      *
      *  the method url
      */
-    private String url;
+    private String[] url ;
 
     /**
      *  the method name `@name`
@@ -31,10 +36,6 @@ public class ControllerMethod implements Serializable {
      */
     private Method method;
 
-    /**
-     *  the description
-     */
-    private String description;
 
     /**
      *  the class
@@ -56,7 +57,24 @@ public class ControllerMethod implements Serializable {
     /**
      *  the request that api support
      */
-    private Constant.RequestMethod[] methods;
+    private RequestMethod[] methods;
+
+
+    public void addRequestMethod(RequestMethod method){
+        this.methods = new RequestMethod[]{method};
+    }
+
+
+    public void setRequestMethods(String methods){
+
+        for (String m: StringUtil.parseUrls(methods)
+             ) {
+           RequestMethod method = RequestMethod.valueOf(m.trim());
+           if(method!=null){
+               this
+           }
+        }
+    }
 
 
 }

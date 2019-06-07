@@ -4,18 +4,30 @@ package com.hsjfans.github.util;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.PackageDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.ArrayAccessExpr;
 import com.github.javaparser.javadoc.Javadoc;
 import com.github.javaparser.javadoc.JavadocBlockTag;
+import com.google.common.collect.Lists;
 import com.hsjfans.github.model.ControllerClass;
-import com.hsjfans.github.model.Param;
+import com.hsjfans.github.model.ControllerMethod;
+import com.hsjfans.github.model.RequestParam;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Controller;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.*;
+
+
 
 public class ClassUtils {
 
@@ -102,10 +114,97 @@ public class ClassUtils {
      * @param method
      * @return
      */
-    public static Param parseMethodComment(Comment comment, Method method){
+    public static ControllerMethod parseMethodComment(Comment comment, MethodDeclaration method){
+        if(comment==null){return null;}
+        // contain `Controller` or `RestController`;
 
-        //  todo
-        return null;
+        ControllerMethod controllerMethod = new ControllerMethod();
+        method.getAnnotations().stream().filter(AnnotationExpr::isNormalAnnotationExpr).forEach(annotationExpr -> {
+            if(SpringUtil.map.containsKey(annotationExpr.getNameAsString())){
+                controllerMethod.setMethods(SpringUtil.map.get(annotationExpr.getNameAsString()));
+                annotationExpr.asNormalAnnotationExpr().getPairs().forEach(
+                        memberValuePair -> {
+                            if(memberValuePair.getNameAsString().equals("value")){
+                                controllerMethod.setUrl(StringUtil.parseUrls(memberValuePair.getValue().toString()));
+                            }
+                            if(memberValuePair.getNameAsString().equals("method")){
+                                controllerMethod.setMethods(StringUtil.parseUrls(memberValuePair.getValue().toString()));
+                            }
+                        }
+                );
+            }
+
+        });
+
+//        controllerMethod.setMethod(method);
+//        if(annotationMap.containsKey(PostMapping.class.getName())){
+//            controllerMethod.addRequestMethod(RequestMethod.POST);
+//            controllerMethod.setUrl(((PostMapping)annotationMap.get(PostMapping.class.getName())).value());
+//        }
+//        else if(annotationMap.containsKey(GetMapping.class.getName())){
+//            controllerMethod.addRequestMethod(RequestMethod.GET);
+//            controllerMethod.setUrl(((GetMapping)annotationMap.get(GetMapping.class.getName())).value());
+//        }
+//        else if(annotationMap.containsKey(PutMapping.class.getName())){
+//            controllerMethod.addRequestMethod(RequestMethod.PUT);
+//            controllerMethod.setUrl(((PutMapping)annotationMap.get(PutMapping.class.getName())).value());
+//        }
+//       else if(annotationMap.containsKey(DeleteMapping.class.getName())){
+//            controllerMethod.addRequestMethod(RequestMethod.DELETE);
+//            controllerMethod.setUrl(((DeleteMapping)annotationMap.get(DeleteMapping.class.getName())).value());
+//        }
+//       else if(annotationMap.containsKey(PatchMapping.class.getName())){
+//            controllerMethod.addRequestMethod(RequestMethod.PATCH);
+//            controllerMethod.setUrl(((PatchMapping)annotationMap.get(PatchMapping.class.getName())).value());
+//        }
+//
+//       else if(annotationMap.containsKey(RequestMapping.class.getName())){
+//            RequestMapping mapping = (RequestMapping)annotationMap.get(RequestMapping.class.getName());
+//            controllerMethod.setMethods(mapping.method());
+//            if(mapping.value().length>0){
+//                controllerMethod.setUrl(mapping.value());
+//            }else {
+//                controllerMethod.setUrl(mapping.path());
+//            }
+//        }
+//        else {
+//            return null;
+//        }
+
+        // start handle comment
+        Javadoc javadoc = comment.parse();
+
+        final List<RequestParam> requestParams = Lists.newArrayListWithCapacity(javadoc.getBlockTags().size());
+
+        javadoc.getBlockTags().forEach(javadocBlockTag ->
+        {
+
+            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
+               controllerMethod.setIgnore(true);
+               return;
+            }
+
+            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
+                controllerMethod.setName(javadocBlockTag.getContent().toString());
+            }
+
+            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.PARAM)){
+                RequestParam requestParam = new RequestParam();
+                if(!javadocBlockTag.isInlineIgnore()){
+                    requestParam.setFuzzy(javadocBlockTag.isInlineFuzzy());
+                    requestParam.setNecessary(javadocBlockTag.isInlineNecessary());
+                    requestParam.setName(javadocBlockTag.getContent().toText());
+                    requestParams.add(requestParam);
+                }
+
+            }
+
+        });
+
+        if(controllerMethod.isIgnore()){return null;}
+
+        System.out.println(controllerMethod);
+        return controllerMethod;
     }
 
 
@@ -115,9 +214,9 @@ public class ClassUtils {
      * @param returnType
      * @return
      */
-    public static Return parseMethodReturn(Comment comment,Class<?> returnType){
+    public static void parseMethodReturn(Comment comment,Class<?> returnType){
         //  todo
-        return null;
+
     }
 
 
@@ -127,10 +226,10 @@ public class ClassUtils {
      * @param field filed
      * @return
      */
-    public static Param parseFieldComment(Comment comment, Field field){
+    public static void parseFieldComment(Comment comment, Field field){
 
         //  todo
-        return null;
+
     }
 
     /**
@@ -141,15 +240,57 @@ public class ClassUtils {
      */
     public static ControllerClass parseClassComment(Comment comment, Class<?> cl){
         if(comment==null){return null;}
-        Javadoc javadoc = comment.parse();
-        javadoc.getBlockTags().forEach(
-                a->{
-                    if(!a.getTagName().equals(JavadocBlockTag.Type.IGNORE
-                    &&a.getTagName().equals())){
 
-                    }
-                }
+
+        // contain `Controller` or `RestController`
+        Map<String, Annotation> annotationMap = CollectionUtil.convertToMap(
+                cl.getAnnotations()
         );
+
+        if((!annotationMap.containsKey(Controller.class.getName()))&&(!annotationMap.containsKey(RestController.class.getName()))){
+            return null;
+        }
+
+        final ControllerClass controllerClass = new ControllerClass();
+        controllerClass.setAClass(cl);
+        Javadoc javadoc = comment.parse();
+        javadoc.getBlockTags().forEach(javadocBlockTag ->
+        {
+            // if contains `@ignore`
+            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
+                controllerClass.setIgnore(true);
+            }
+
+            // if contains `@name`
+            if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
+                controllerClass.setName(javadocBlockTag.toText());
+            }
+
+        });
+
+
+        if(controllerClass.isIgnore()){return null;}
+
+        if(controllerClass.getName()==null){
+            controllerClass.setName(cl.getSimpleName());
+        }
+
+//        System.out.println(annotationMap);
+//        System.out.println(RequestMapping.class.getName());
+        // handle url
+        if(annotationMap.containsKey(RequestMapping.class.getName())){
+            RequestMapping mapping = ((RequestMapping)annotationMap.get(RequestMapping.class.getName()));
+            controllerClass.setMethods(mapping.method());
+            if(mapping.path().length>0){
+                controllerClass.setUrl(mapping.path());
+            } else if (mapping.value().length>0){
+                controllerClass.setUrl(mapping.value());
+            }
+        }
+
+//        System.out.println(controllerClass);
+
+        return controllerClass;
 
     }
 
@@ -167,8 +308,8 @@ public class ClassUtils {
     public static void main(String[] args) throws ClassNotFoundException {
         String testPath = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github";
         String realPath = "/Volumes/doc/projects/java/api";
-        String tets2Path = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github/model";
-        for(File file:scan(tets2Path,true)){
+        String test2Path = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github/model";
+        for(File file:scan(test2Path,true)){
             CompilationUnit compilationUnit = parseJavaFile(file);
             Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
             if(!packageDeclaration.isPresent()){
@@ -185,17 +326,17 @@ public class ClassUtils {
 //            c.getMethods()[0].getParameters();
 //            System.out.println(typeDeclaration.get().getComment());
 //            System.out.println(compilationUnit.getPrimaryType().get());
-//            parseClassComment(typeDeclaration.get().getComment().orElse(null),null);
+//            parseClassComment(typeDeclaration.get().getComment().orElse(null),c);
 
             // parse method
-//            typeDeclaration.get().getMethods().forEach(m->{
-//               parseClassComment( m.getComment().orElse(null),null);
-//            });
-
-
-            typeDeclaration.get().getFields().forEach(a->{
-                parseClassComment(a.getComment().orElse(null),null);
+            typeDeclaration.get().getMethods().forEach(m->{
+                parseMethodComment( m.getComment().orElse(null),m);
             });
+
+
+//            typeDeclaration.get().getFields().forEach(a->{
+//                parseClassComment(a.getComment().orElse(null),c);
+//            });
 
         }
 

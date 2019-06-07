@@ -4,17 +4,16 @@ package com.hsjfans.github.parser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.hsjfans.github.model.ControllerClass;
+import com.hsjfans.github.model.ControllerMethod;
 import com.hsjfans.github.util.ClassUtils;
-import com.hsjfans.github.util.CollectionUtil;
-import com.hsjfans.github.util.Constant;
 import com.hsjfans.github.util.LogUtil;
-import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
-import java.lang.annotation.Annotation;
-import java.util.Map;
+import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -41,13 +40,7 @@ public class SpringParser extends AbstractParser{
         Set<CompilationUnit> compilationUnits = Sets.newHashSet();
         javaFiles.forEach(file->{
            CompilationUnit compilationUnit = ClassUtils.parseJavaFile(file);
-           if(compilationUnit!=null){
-               if(compilationUnit.getAnnotationDeclarationByName(Constant.SPRING_CONTROLLER).isPresent()){
-                   compilationUnits.add(compilationUnit);
-               }else if(compilationUnit.getAnnotationDeclarationByName(Constant.SPRING_REST_CONTROLLER).isPresent()){
-                   compilationUnits.add(compilationUnit);
-               }
-           }
+            compilationUnits.add(compilationUnit);
         });
 
         return compilationUnits;
@@ -74,21 +67,22 @@ public class SpringParser extends AbstractParser{
             return null;
         }
 
-        Map<Class<?>, Annotation> annotationMap = CollectionUtil.convertToMap(
-                cl.getAnnotations()
-        );
-
-        if(!annotationMap.containsKey(Controller.class)&&!annotationMap.containsKey(RestController.class)){
-            return null;
-        }
-
-        // contain `RequestMapping(Value="")`
-        if(annotationMap.containsKey(RequestMapping.class)){
-            ((RequestMapping)annotationMap.get(RequestMapping.class))
-        }
-
         controllerClass =  ClassUtils.parseClassComment(typeDeclaration.get().getComment().orElse(null),cl);
+        if(controllerClass==null||controllerClass.isIgnore()){return null;}
 
+        final List<ControllerMethod> controllerMethods = Lists.newArrayListWithCapacity(cl.getMethods().length);
+
+        typeDeclaration.get().getMethods().forEach(
+                methodDeclaration -> {
+                    ControllerMethod controllerMethod = ClassUtils.parseMethodComment(methodDeclaration.getComment().orElse(null),methodDeclaration);
+                    if(controllerMethod!=null){
+                        controllerMethods.add(controllerMethod);
+                    }
+                }
+        );
+        controllerClass.setControllerMethod(controllerMethods);
+
+        return controllerClass;
 
 
     }

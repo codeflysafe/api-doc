@@ -37,10 +37,10 @@ public class CollectionUtil {
     }
 
 
-    public static Map<Class<?>,Annotation> convertToMap(Annotation[] annotations){
-        Map<Class<?>,Annotation> annotationMap = Maps.newConcurrentMap();
+    public static Map<String,Annotation> convertToMap(Annotation[] annotations){
+        Map<String,Annotation> annotationMap = Maps.newConcurrentMap();
         for(Annotation annotation:annotations){
-           annotationMap.put(annotation.getClass(),annotation);
+           annotationMap.put(annotation.annotationType().getName(),annotation);
         }
         return annotationMap;
     }
