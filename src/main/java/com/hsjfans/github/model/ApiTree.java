@@ -38,6 +38,13 @@ public class ApiTree implements Serializable {
         return;
     }
 
+
+
+    @RequestMapping("/123-12312")
+    public void set(){
+        return;
+    }
+
     public static ConcurrentMap<Class<?>, ControllerClass> getControllerClassMap() {
         return controllerClassMap;
     }

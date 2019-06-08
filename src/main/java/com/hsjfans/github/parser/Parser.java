@@ -4,6 +4,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.hsjfans.github.model.ApiTree;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -12,6 +13,7 @@ import java.util.List;
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
 public interface Parser {
+
 
    /**
     *

@@ -12,7 +12,6 @@ import com.hsjfans.github.util.ClassUtils;
 import com.hsjfans.github.util.LogUtil;
 
 import java.io.File;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -40,7 +39,25 @@ public class SpringParser extends AbstractParser{
         Set<CompilationUnit> compilationUnits = Sets.newHashSet();
         javaFiles.forEach(file->{
            CompilationUnit compilationUnit = ClassUtils.parseJavaFile(file);
-            compilationUnits.add(compilationUnit);
+           if (compilationUnit!=null){
+               Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
+               if(packageDeclaration.isPresent()){
+                   String packageName = packageDeclaration.get().getNameAsString();
+                   Optional<TypeDeclaration<?>> typeDeclaration = compilationUnit.getPrimaryType();
+                   if(typeDeclaration.isPresent()){
+                       String className = packageName+"."+typeDeclaration.get().getName();
+                       Class<?> cl ;
+                       try {
+                           cl = classLoader.loadClass(className);
+                           ClassCache.putCompilationUnit(className,compilationUnit);
+                           ClassCache.putClass(className,cl);
+                           compilationUnits.add(compilationUnit);
+                       }catch (Exception e){
+                           LogUtil.warn(e.getMessage());
+                       }
+                   }
+               }
+           }
         });
 
         return compilationUnits;

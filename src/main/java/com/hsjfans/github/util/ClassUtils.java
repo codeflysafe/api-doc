@@ -5,17 +5,20 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.ArrayAccessExpr;
+import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.javadoc.Javadoc;
 import com.github.javaparser.javadoc.JavadocBlockTag;
 import com.google.common.collect.Lists;
 import com.hsjfans.github.model.ControllerClass;
 import com.hsjfans.github.model.ControllerMethod;
 import com.hsjfans.github.model.RequestParam;
+import com.hsjfans.github.parser.ClassCache;
+import com.hsjfans.github.parser.Parser;
+import com.hsjfans.github.parser.ParserException;
+import com.hsjfans.github.parser.SpringParser;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.stereotype.Controller;
 
@@ -23,8 +26,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.*;
 
 
@@ -118,6 +119,8 @@ public class ClassUtils {
         if(comment==null){return null;}
         // contain `Controller` or `RestController`;
 
+
+
         ControllerMethod controllerMethod = new ControllerMethod();
         method.getAnnotations().stream().filter(AnnotationExpr::isNormalAnnotationExpr).forEach(annotationExpr -> {
             if(SpringUtil.map.containsKey(annotationExpr.getNameAsString())){
@@ -127,9 +130,10 @@ public class ClassUtils {
                             if(memberValuePair.getNameAsString().equals("value")){
                                 controllerMethod.setUrl(StringUtil.parseUrls(memberValuePair.getValue().toString()));
                             }
-                            if(memberValuePair.getNameAsString().equals("method")){
-                                controllerMethod.setMethods(StringUtil.parseUrls(memberValuePair.getValue().toString()));
-                            }
+                            System.out.println(memberValuePair);
+//                            if(memberValuePair.getNameAsString().equals("method")){
+//                                controllerMethod.setMethods(StringUtil.parseUrls(memberValuePair.getValue().toString()));
+//                            }
                         }
                 );
             }
@@ -269,6 +273,8 @@ public class ClassUtils {
         });
 
 
+
+
         if(controllerClass.isIgnore()){return null;}
 
         if(controllerClass.getName()==null){
@@ -300,47 +306,40 @@ public class ClassUtils {
     }
 
 
+    public static Class<?> parseImportClass(CompilationUnit compilationUnit){
+        compilationUnit.getImports().forEach(
+                importDeclaration->{
+                    return;
+                }
+        );
+        return null;
+    }
+
+    /**
+     * get file name without extension
+     * @param javaFile
+     * @return string
+     */
+    public static String getJavaFileName(File javaFile){
+        String fileName = javaFile.getName();
+        return fileName.substring(0, fileName.lastIndexOf("."));
+    }
+
+
     /**
      * @see #toString()
      * @param args args
      * @throws ClassNotFoundException
      */
-    public static void main(String[] args) throws ClassNotFoundException {
+    public static void main(String[] args) throws ClassNotFoundException, ParserException {
         String testPath = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github";
         String realPath = "/Volumes/doc/projects/java/api";
         String test2Path = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github/model";
-        for(File file:scan(test2Path,true)){
-            CompilationUnit compilationUnit = parseJavaFile(file);
-            Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
-            if(!packageDeclaration.isPresent()){
-                return;
-            }
-            String packageName = packageDeclaration.get().getNameAsString();
-            Optional<TypeDeclaration<?>> typeDeclaration = compilationUnit.getPrimaryType();
-            if(!typeDeclaration.isPresent()){
-                return;
-            }
-            String className = packageName+"."+typeDeclaration.get().getName();
 
-            Class<?> c = loader(className);
-//            c.getMethods()[0].getParameters();
-//            System.out.println(typeDeclaration.get().getComment());
-//            System.out.println(compilationUnit.getPrimaryType().get());
-//            parseClassComment(typeDeclaration.get().getComment().orElse(null),c);
+        Parser parser = new SpringParser();
+        parser.parse(test2Path,true);
 
-            // parse method
-            typeDeclaration.get().getMethods().forEach(m->{
-                parseMethodComment( m.getComment().orElse(null),m);
-            });
-
-
-//            typeDeclaration.get().getFields().forEach(a->{
-//                parseClassComment(a.getComment().orElse(null),c);
-//            });
-
-        }
-
-
+//        System.out.println(ClassCache.getCompilationUnitCache().keySet());
 
     }
 
