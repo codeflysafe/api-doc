@@ -3,36 +3,33 @@ package com.hsjfans.github.util;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.PackageDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.comments.Comment;
-import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.javadoc.Javadoc;
 import com.github.javaparser.javadoc.JavadocBlockTag;
 import com.google.common.collect.Lists;
-import com.hsjfans.github.model.ControllerClass;
-import com.hsjfans.github.model.ControllerMethod;
+import com.hsjfans.github.config.Config;
+import com.hsjfans.github.model.*;
 import com.hsjfans.github.model.RequestParam;
 import com.hsjfans.github.parser.ClassCache;
 import com.hsjfans.github.parser.Parser;
 import com.hsjfans.github.parser.ParserException;
 import com.hsjfans.github.parser.SpringParser;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.stereotype.Controller;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.*;
-
+import java.util.stream.Collectors;
 
 
 public class ClassUtils {
-
-    private static final ClassLoader loader = ClassUtils.class.getClassLoader();
 
     /**
      *
@@ -115,126 +112,195 @@ public class ClassUtils {
      * @param method
      * @return
      */
-    public static ControllerMethod parseMethodComment(Comment comment, MethodDeclaration method){
+    public static ControllerMethod parseMethodComment(Comment comment, Method method) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         if(comment==null){return null;}
-        // contain `Controller` or `RestController`;
 
-
+        LogUtil.info("comment = %s ,method = %s",comment.toString(),method.getName());
 
         ControllerMethod controllerMethod = new ControllerMethod();
-        method.getAnnotations().stream().filter(AnnotationExpr::isNormalAnnotationExpr).forEach(annotationExpr -> {
-            if(SpringUtil.map.containsKey(annotationExpr.getNameAsString())){
-                controllerMethod.setMethods(SpringUtil.map.get(annotationExpr.getNameAsString()));
-                annotationExpr.asNormalAnnotationExpr().getPairs().forEach(
-                        memberValuePair -> {
-                            if(memberValuePair.getNameAsString().equals("value")){
-                                controllerMethod.setUrl(StringUtil.parseUrls(memberValuePair.getValue().toString()));
-                            }
-                            System.out.println(memberValuePair);
-//                            if(memberValuePair.getNameAsString().equals("method")){
-//                                controllerMethod.setMethods(StringUtil.parseUrls(memberValuePair.getValue().toString()));
-//                            }
-                        }
-                );
+        List<Annotation> annotations = Arrays.stream(method.getAnnotations()).filter(
+                annotation ->
+                        SpringUtil.map.containsKey(annotation.annotationType().getSimpleName())).collect(Collectors.toList());
+        if(annotations.size()>0){
+            Annotation annotation = annotations.get(0);
+            if(annotation.annotationType().getSimpleName().equals(RequestMapping.class.getSimpleName())){
+                RequestMapping mapping = (RequestMapping)annotation;
+                controllerMethod.setMethods(mapping.method());
+                if(mapping.value().length>0){
+                    controllerMethod.setUrl(mapping.value());
+                }else {
+                    controllerMethod.setUrl(mapping.path());
+                }
+            }else {
+                RequestMapping requestMapping = annotation.annotationType().getAnnotation(RequestMapping.class);
+                controllerMethod.setMethods(requestMapping.method());
+                Method value = annotation.annotationType().getMethod("value");
+                controllerMethod.setUrl((String[]) value.invoke(annotation));
+                if(controllerMethod.getUrl()==null){
+                    Method path = annotation.annotationType().getMethod("path");
+                    controllerMethod.setUrl((String[]) path.invoke(annotation));
+                }
             }
+        }
 
-        });
-
-//        controllerMethod.setMethod(method);
-//        if(annotationMap.containsKey(PostMapping.class.getName())){
-//            controllerMethod.addRequestMethod(RequestMethod.POST);
-//            controllerMethod.setUrl(((PostMapping)annotationMap.get(PostMapping.class.getName())).value());
-//        }
-//        else if(annotationMap.containsKey(GetMapping.class.getName())){
-//            controllerMethod.addRequestMethod(RequestMethod.GET);
-//            controllerMethod.setUrl(((GetMapping)annotationMap.get(GetMapping.class.getName())).value());
-//        }
-//        else if(annotationMap.containsKey(PutMapping.class.getName())){
-//            controllerMethod.addRequestMethod(RequestMethod.PUT);
-//            controllerMethod.setUrl(((PutMapping)annotationMap.get(PutMapping.class.getName())).value());
-//        }
-//       else if(annotationMap.containsKey(DeleteMapping.class.getName())){
-//            controllerMethod.addRequestMethod(RequestMethod.DELETE);
-//            controllerMethod.setUrl(((DeleteMapping)annotationMap.get(DeleteMapping.class.getName())).value());
-//        }
-//       else if(annotationMap.containsKey(PatchMapping.class.getName())){
-//            controllerMethod.addRequestMethod(RequestMethod.PATCH);
-//            controllerMethod.setUrl(((PatchMapping)annotationMap.get(PatchMapping.class.getName())).value());
-//        }
-//
-//       else if(annotationMap.containsKey(RequestMapping.class.getName())){
-//            RequestMapping mapping = (RequestMapping)annotationMap.get(RequestMapping.class.getName());
-//            controllerMethod.setMethods(mapping.method());
-//            if(mapping.value().length>0){
-//                controllerMethod.setUrl(mapping.value());
-//            }else {
-//                controllerMethod.setUrl(mapping.path());
-//            }
-//        }
-//        else {
-//            return null;
-//        }
 
         // start handle comment
         Javadoc javadoc = comment.parse();
-
+//        System.out.println(javadoc);
+        LogUtil.info(" javaDoc is  %s",javadoc);
         final List<RequestParam> requestParams = Lists.newArrayListWithCapacity(javadoc.getBlockTags().size());
-
+        final ResponseReturn responseReturn = new ResponseReturn();
         javadoc.getBlockTags().forEach(javadocBlockTag ->
         {
-
             if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
                controllerMethod.setIgnore(true);
                return;
             }
-
             if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
-                controllerMethod.setName(javadocBlockTag.getContent().toString());
+                controllerMethod.setName(javadocBlockTag.getContent().toText());
             }
-
             if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.PARAM)){
                 RequestParam requestParam = new RequestParam();
-                if(!javadocBlockTag.isInlineIgnore()){
-                    requestParam.setFuzzy(javadocBlockTag.isInlineFuzzy());
-                    requestParam.setNecessary(javadocBlockTag.isInlineNecessary());
-                    requestParam.setName(javadocBlockTag.getContent().toText());
-                    requestParams.add(requestParam);
-                }
+                requestParam.setFuzzy(javadocBlockTag.isInlineFuzzy());
+                requestParam.setNecessary(!javadocBlockTag.isInlineIgnore());
+                requestParam.setName(javadocBlockTag.getName().orElse(""));
+                requestParam.setDescription(javadocBlockTag.getContent().toText());
 
+                // 这里只解析 @param 参数
+                javadocBlockTag.getName().ifPresent(
+                        name->{
+                            LogUtil.info("  javadocBlockTag name is %s  ",name);
+                            LogUtil.info("  method.getParameters() are %s",method.getParameters()[0].getName());
+                            // 判断请求参数是否为结构体，如果是 则进行解析
+                           List<Parameter> parameters =  Arrays.stream(method.getParameters()).filter(parameter->parameter.getName().equals(name)&&!parameter.getType().isPrimitive())
+                                    .collect(Collectors.toList());
+                           if(parameters.size()>0){
+                               LogUtil.info("  parameter is %s  ",parameters.get(0).getName());
+                              requestParam.setParams(parseRequestParam(parameters.get(0).getType()));
+                           }
+                        }
+                );
+
+                requestParams.add(requestParam);
+            }
+
+            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.RETURN)){
+                responseReturn.setDescription(javadocBlockTag.getContent().toText());
+                responseReturn.setDescription(javadocBlockTag.getName().orElse(""));
+               //  ReturnItem returnItem = new ReturnItem();
+
+                // 返回值只解析 description
             }
 
         });
 
-        if(controllerMethod.isIgnore()){return null;}
 
-        System.out.println(controllerMethod);
+        // parse method return
+        parseResponseReturn(method.getReturnType(),responseReturn);
+
+
+
+        controllerMethod.setParams(requestParams);
+        controllerMethod.setResponseReturn(responseReturn);
+        if(controllerMethod.isIgnore()){return null;}
         return controllerMethod;
     }
 
 
+
     /**
      *  parse the method  comment to Param
-     * @param comment
-     * @param returnType
+     * @param returnClass comment {@ignore}
+     * @param responseReturn responseReturn
      * @return
      */
-    public static void parseMethodReturn(Comment comment,Class<?> returnType){
-        //  todo
+    private static List<ReturnItem> parseResponseReturn(Class<?> returnClass,ResponseReturn responseReturn){
+
+        if(returnClass.isPrimitive()){
+
+        }else if(returnClass.isArray()){
+
+        }else if(returnClass.isEnum()){
+
+        }else {
+
+        }
+
+        return null;
 
     }
 
 
     /**
-     *  parse the method  comment to Param
-     * @param comment comment {@ignore}
-     * @param field filed
-     * @return
+     *
+     * @param request the request param class
      */
-    public static void parseFieldComment(Comment comment, Field field){
+    private static List<RequestParam> parseRequestParam(Class<?> request){
+        List<RequestParam> requestParams = Lists.newLinkedList();
+        TypeDeclaration typeDeclaration = ClassCache.getCompilationUnit(request.getName());
+        if (typeDeclaration==null){
+            return requestParams;
+        }
+        Arrays.stream(request.getFields()).forEach(field -> {
+            RequestParam requestParam = new RequestParam();
+            requestParam.setType(field.getType().getTypeName());
+            if(field.getType().isPrimitive()){
+               typeDeclaration.getFieldByName(field.getName()).ifPresent(fieldDeclaration -> {
+                    parseFiledComment(((FieldDeclaration)fieldDeclaration).getComment().orElse(null),requestParam);
+                    if(requestParam.getName()==null){
+                        requestParam.setName(field.getName());
+                    }
+                });
 
-        //  todo
+            }else if(field.getType().isArray()) {
+                // todo
+
+            }else if(!field.getType().isInterface()) {
+                requestParam.setParams(parseRequestParam(field.getType()));
+            }
+
+            requestParams.add(requestParam);
+        });
+
+        return requestParams;
+    }
+
+
+
+    // todo handle array
+    private static void parseFiledComment(Comment comment,RequestParam requestParam){
+        if(comment==null){return;}
+        Javadoc javadoc = comment.parse();
+        javadoc.getBlockTags().forEach(javadocBlockTag -> {
+            // if contains `@ignore`
+            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
+                requestParam.setNecessary(false);
+            }
+            // if contains `@name`
+            if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
+                requestParam.setName(javadocBlockTag.getContent().toText());
+            }
+
+            // if contains `@fuzzy`
+            if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.FUZZY)){
+                requestParam.setFuzzy(true);
+            }
+
+
+        });
+
+        requestParam.setDescription(javadoc.getDescription().toText());
 
     }
+
+
+
+    private static void parseReturnComment(Comment comment,ReturnItem returnItem){
+        if(comment==null){return;}
+
+
+    }
+
 
     /**
      * @name parse the method  comment to Param
@@ -243,18 +309,9 @@ public class ClassUtils {
      * @return
      */
     public static ControllerClass parseClassComment(Comment comment, Class<?> cl){
+
+
         if(comment==null){return null;}
-
-
-        // contain `Controller` or `RestController`
-        Map<String, Annotation> annotationMap = CollectionUtil.convertToMap(
-                cl.getAnnotations()
-        );
-
-        if((!annotationMap.containsKey(Controller.class.getName()))&&(!annotationMap.containsKey(RestController.class.getName()))){
-            return null;
-        }
-
         final ControllerClass controllerClass = new ControllerClass();
         controllerClass.setAClass(cl);
         Javadoc javadoc = comment.parse();
@@ -267,79 +324,74 @@ public class ClassUtils {
 
             // if contains `@name`
             if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
-                controllerClass.setName(javadocBlockTag.toText());
+                controllerClass.setName(javadocBlockTag.getContent().toText());
+            }
+
+            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.AUTHOR)){
+                controllerClass.setAuthor(javadocBlockTag.getContent().toText());
             }
 
         });
 
-
-
-
         if(controllerClass.isIgnore()){return null;}
-
         if(controllerClass.getName()==null){
             controllerClass.setName(cl.getSimpleName());
         }
+        controllerClass.setDescription(javadoc.getDescription().toText());
 
-//        System.out.println(annotationMap);
-//        System.out.println(RequestMapping.class.getName());
         // handle url
-        if(annotationMap.containsKey(RequestMapping.class.getName())){
-            RequestMapping mapping = ((RequestMapping)annotationMap.get(RequestMapping.class.getName()));
-            controllerClass.setMethods(mapping.method());
-            if(mapping.path().length>0){
-                controllerClass.setUrl(mapping.path());
-            } else if (mapping.value().length>0){
-                controllerClass.setUrl(mapping.value());
-            }
-        }
-
-//        System.out.println(controllerClass);
+        Arrays.stream(cl.getAnnotations()).filter(annotation -> annotation.annotationType().getSimpleName().equals("RequestMapping"))
+                .forEach(annotation->{
+                    RequestMapping mapping = (RequestMapping) annotation;
+                    if(mapping.path().length>0){
+                        controllerClass.setUrl(mapping.path());
+                    } else if (mapping.value().length>0){
+                        controllerClass.setUrl(mapping.value());
+                    }else {
+                        controllerClass.setUrl(new String[]{""});
+                    }
+                });
 
         return controllerClass;
 
     }
 
 
-    public static Class<?> loader(String packageName) throws ClassNotFoundException {
-        return loader.loadClass(packageName);
-    }
 
-
-    public static Class<?> parseImportClass(CompilationUnit compilationUnit){
-        compilationUnit.getImports().forEach(
-                importDeclaration->{
-                    return;
-                }
-        );
-        return null;
-    }
-
-    /**
-     * get file name without extension
-     * @param javaFile
-     * @return string
-     */
-    public static String getJavaFileName(File javaFile){
-        String fileName = javaFile.getName();
-        return fileName.substring(0, fileName.lastIndexOf("."));
-    }
+//    public static Class<?> parseImportClass(CompilationUnit compilationUnit){
+//        compilationUnit.getImports().forEach(
+//                importDeclaration->{
+//                    return;
+//                }
+//        );
+//        return null;
+//    }
+//
+//    /**
+//     * get file name without extension
+//     * @param javaFile
+//     * @return string
+//     */
+//    public static String getJavaFileName(File javaFile){
+//        String fileName = javaFile.getName();
+//        return fileName.substring(0, fileName.lastIndexOf("."));
+//    }
 
 
     /**
      * @see #toString()
      * @param args args
-     * @throws ClassNotFoundException
      */
-    public static void main(String[] args) throws ClassNotFoundException, ParserException {
+    public static void main(String[] args) throws  ParserException {
+
         String testPath = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github";
         String realPath = "/Volumes/doc/projects/java/api";
-        String test2Path = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github/model";
-
-        Parser parser = new SpringParser();
-        parser.parse(test2Path,true);
-
-//        System.out.println(ClassCache.getCompilationUnitCache().keySet());
+        Config config = new Config();
+        config.setPackageName(realPath);
+        config.setGradle(true);
+        config.setGradlePath("");
+        Parser parser = new SpringParser(config);
+        parser.parse(config.getPackageName(),true);
 
     }
 

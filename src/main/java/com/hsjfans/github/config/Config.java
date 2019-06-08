@@ -1,8 +1,11 @@
 package com.hsjfans.github.config;
 
+import lombok.Data;
+
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
+@Data
 public class Config {
 
     /**
@@ -15,20 +18,20 @@ public class Config {
      */
     private String outPath;
 
+    /**
+     *  the path of classes files
+     */
+    private String classPath;
 
-    public String getPackageName() {
-        return packageName;
-    }
 
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
-    }
+    private boolean gradle;
 
-    public String getOutPath() {
-        return outPath;
-    }
 
-    public void setOutPath(String outPath) {
-        this.outPath = outPath;
-    }
+    private String gradlePath;
+
+
+    private String mvnPath;
+
+
+
 }

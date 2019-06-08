@@ -1,8 +1,11 @@
 package com.hsjfans.github.parser;
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.google.common.collect.Sets;
+import com.hsjfans.github.config.Config;
 import com.hsjfans.github.model.ApiTree;
 import com.hsjfans.github.model.ControllerClass;
+import com.hsjfans.github.util.ApiClassLoader;
 import com.hsjfans.github.util.ClassUtils;
 import com.hsjfans.github.util.LogUtil;
 
@@ -16,12 +19,21 @@ import java.util.Set;
 
 public abstract class AbstractParser implements Parser  {
 
+    protected final ClassLoader classLoader  ;
+
+    protected final Config config;
+
+    public AbstractParser(Config config){
+        this.config = config;
+        this.classLoader = new ApiClassLoader(config);
+    }
+
 
     protected abstract Set<String> supportClassAnnotations();
 
     protected abstract Set<CompilationUnit> getAllControllerClass(Set<File> javaFiles);
 
-    protected abstract ControllerClass parseCompilationUnit(CompilationUnit compilationUnit);
+    protected abstract void parseCompilationUnit(CompilationUnit compilationUnit, Set<ControllerClass> controllerClasses);
 
 
     @Override
@@ -29,7 +41,8 @@ public abstract class AbstractParser implements Parser  {
         LogUtil.info("开始解析 projectPath# "+projectPath);
         Set<File> javaFiles =  ClassUtils.scan(projectPath,true);
         Set<CompilationUnit> compilationUnits =  getAllControllerClass(javaFiles);
-        compilationUnits.forEach(this::parseCompilationUnit);
+        Set<ControllerClass> controllerClasses = Sets.newHashSet();
+        compilationUnits.forEach(compilationUnit -> parseCompilationUnit(compilationUnit,controllerClasses));
         return null;
     }
 

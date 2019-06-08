@@ -15,7 +15,7 @@ public class LogUtil {
 
     static{
         try{
-            FileHandler fileHandler = new FileHandler("",true);
+            FileHandler fileHandler = new FileHandler();
             fileHandler.setFormatter(new SimpleFormatter());
             fileHandler.setLevel(Level.ALL);
             LOGGER.addHandler(fileHandler);
@@ -25,6 +25,7 @@ public class LogUtil {
     }
 
     public static void info(String message, Object... args){
+
         LOGGER.info(String.format("info: " +message, args));
     }
 
@@ -37,6 +38,7 @@ public class LogUtil {
     }
 
     public static void error(String message, Throwable e){
+
         LOGGER.log(Level.SEVERE, message, e);
     }
 

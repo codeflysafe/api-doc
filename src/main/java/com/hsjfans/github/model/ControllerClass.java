@@ -42,6 +42,13 @@ public class ControllerClass implements Serializable {
      */
     private List<ControllerMethod> controllerMethod;
 
+    /**
+     *  author
+     */
+    private String author;
+
+
+    private String description;
 
     @Override
     public String toString() {
@@ -52,6 +59,8 @@ public class ControllerClass implements Serializable {
                 ", ignore=" + ignore +
                 ", methods=" + Arrays.toString(methods) +
                 ", controllerMethod=" + controllerMethod +
+                ", author='" + author + '\'' +
+                ", description='" + description + '\'' +
                 '}';
     }
 }

@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  *
@@ -64,7 +65,7 @@ public class RequestParam implements Serializable {
     /**
      *  Collection  class
      */
-    private RequestParam[] params;
+    private List<RequestParam> params;
 
 
 

@@ -3,18 +3,26 @@ package com.hsjfans.github.parser;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.PackageDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.hsjfans.github.config.Config;
 import com.hsjfans.github.model.ControllerClass;
 import com.hsjfans.github.model.ControllerMethod;
 import com.hsjfans.github.util.ClassUtils;
 import com.hsjfans.github.util.LogUtil;
+import com.hsjfans.github.util.SpringUtil;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
@@ -22,10 +30,12 @@ import java.util.Set;
 public class SpringParser extends AbstractParser{
 
 
-    private static final ClassLoader classLoader   = AbstractParser.class.getClassLoader();
-
     // 支持的 Controller 类注解
     private static final Set<String> supportClassAnnotations = Sets.newHashSet("RestController","Controller");
+
+    public SpringParser(Config config) {
+        super(config);
+    }
 
 
     @Override
@@ -39,6 +49,8 @@ public class SpringParser extends AbstractParser{
         Set<CompilationUnit> compilationUnits = Sets.newHashSet();
         javaFiles.forEach(file->{
            CompilationUnit compilationUnit = ClassUtils.parseJavaFile(file);
+//           compilationUnit.getPrimaryType().filter(TypeDeclaration::isClassOrInterfaceDeclaration)
+//                  .get();
            if (compilationUnit!=null){
                Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
                if(packageDeclaration.isPresent()){
@@ -48,9 +60,11 @@ public class SpringParser extends AbstractParser{
                        String className = packageName+"."+typeDeclaration.get().getName();
                        Class<?> cl ;
                        try {
-                           cl = classLoader.loadClass(className);
-                           ClassCache.putCompilationUnit(className,compilationUnit);
-                           ClassCache.putClass(className,cl);
+                           LogUtil.info(" packageName = %s and typeDeclaration.get().getName() = %s "
+                           ,packageName,typeDeclaration.get().getName());
+//                           cl = classLoader.loadClass(className);
+                           ClassCache.putCompilationUnit(className,typeDeclaration.get());
+//                           ClassCache.putClass(className,cl);
                            compilationUnits.add(compilationUnit);
                        }catch (Exception e){
                            LogUtil.warn(e.getMessage());
@@ -64,44 +78,73 @@ public class SpringParser extends AbstractParser{
     }
 
     @Override
-    protected ControllerClass parseCompilationUnit(CompilationUnit compilationUnit) {
-        ControllerClass controllerClass = null;
-        Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
-        if(!packageDeclaration.isPresent()){
-           return null;
-        }
-        String packageName = packageDeclaration.get().getNameAsString();
-        Optional<TypeDeclaration<?>> typeDeclaration = compilationUnit.getPrimaryType();
-        if(!typeDeclaration.isPresent()){
-            return null;
-        }
-        String className = packageName+"."+typeDeclaration.get().getName();
-        Class<?> cl ;
-        try {
-             cl = classLoader.loadClass(className);
-        }catch (Exception e){
-            LogUtil.warn(e.getMessage());
-            return null;
-        }
+    protected void   parseCompilationUnit(CompilationUnit compilationUnit,final Set<ControllerClass> controllerClasses) {
+        compilationUnit.getPrimaryType().ifPresent(typeDeclaration ->
+        {
+            ControllerClass controllerClass ;
+            List<AnnotationExpr> annotationExprs =  typeDeclaration.getAnnotations().stream().filter(annotationExpr -> annotationExpr.getNameAsString().equals("Controller") ||
+                    annotationExpr.getNameAsString().equals("RestController")).collect(Collectors.toList());
+           if(annotationExprs.size()>0){
+               Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
+               if(!packageDeclaration.isPresent()){
+                   return;
+               }
+               String packageName = packageDeclaration.get().getNameAsString();
+               String className = packageName+"."+typeDeclaration.getName();
+               Class<?> cl ;
+               try {
+                   LogUtil.info("开始加载 controller 类  name %s  ",className);
+                   cl = classLoader.loadClass(className);
+               }catch (Exception e){
+                   LogUtil.warn(" className = %s 加载失败 err = %s ",className,e.getMessage());
+                   return;
+               }
 
-        controllerClass =  ClassUtils.parseClassComment(typeDeclaration.get().getComment().orElse(null),cl);
-        if(controllerClass==null||controllerClass.isIgnore()){return null;}
+               controllerClass =  ClassUtils.parseClassComment(typeDeclaration.getComment().orElse(null),cl);
+               if(controllerClass==null||controllerClass.isIgnore()){return;}
 
-        final List<ControllerMethod> controllerMethods = Lists.newArrayListWithCapacity(cl.getMethods().length);
+               LogUtil.info(" className = %s 加载完毕 %s",className,controllerClass);
+               final List<ControllerMethod> controllerMethods = Lists.newArrayListWithCapacity(cl.getMethods().length);
+               // just public method
+               Arrays.stream(cl.getMethods())
+                       .filter(method ->
+                       Arrays.stream(method.getAnnotations()).anyMatch(annotation ->
+                               SpringUtil.map.containsKey(annotation.annotationType().getSimpleName())))
+               .forEach(method -> {
+//                   LogUtil.info(" methodName is %s annotations len = %s ",method.getName(),method.getAnnotations()[0].annotationType().getSimpleName());
+                   List<MethodDeclaration> methodDeclarations = typeDeclaration.getMethodsByName(method.getName());
+//                   LogUtil.info( " methodDeclarations is %s",methodDeclarations.toString());
+                   if(methodDeclarations.size()>0){
+                       ControllerMethod controllerMethod = null;
+                       try {
+                           controllerMethod = ClassUtils.parseMethodComment(methodDeclarations.get(0).getComment().orElse(null),method);
+                           if(controllerMethod!=null){
+                               controllerMethod.setAClass(cl);
+                               controllerMethods.add(controllerMethod);
+                           }
+                       } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+                           LogUtil.error(" err = %s ",e.getMessage());
+                       }
+                   }
+               });
 
-        typeDeclaration.get().getMethods().forEach(
-                methodDeclaration -> {
-                    ControllerMethod controllerMethod = ClassUtils.parseMethodComment(methodDeclaration.getComment().orElse(null),methodDeclaration);
-                    if(controllerMethod!=null){
-                        controllerMethods.add(controllerMethod);
-                    }
+               controllerClass.setControllerMethod(controllerMethods);
+               LogUtil.info("controllerClass is %s ",controllerClass.toString());
+               controllerClasses.add(controllerClass);
+           }
+        });
+
+
+    }
+
+    private static String methodSignature(Method method){
+        StringBuilder stringBuilder = new StringBuilder(method.getName());
+        Arrays.stream(method.getParameters()).forEach(
+                parameter -> {
+                    stringBuilder.append(parameter.getType().getSimpleName());
                 }
         );
-        controllerClass.setControllerMethod(controllerMethods);
-
-        return controllerClass;
-
-
+        return stringBuilder.toString();
     }
 
 

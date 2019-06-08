@@ -1,8 +1,13 @@
 package com.hsjfans.github.util;
 
+import com.google.common.collect.Maps;
 import com.hsjfans.github.config.Config;
 
 import java.io.FileInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
 
 /**
  *
@@ -13,28 +18,34 @@ import java.io.FileInputStream;
 public class ApiClassLoader extends ClassLoader {
 
     /**
+     *  加载 jar 包内
+     */
+    private Map<String,byte[]> jarMap;
+
+    public ApiClassLoader(String projectPath){
+        this.projectPath = projectPath;
+        jarMap = Maps.newHashMap();
+    }
+
+    public ApiClassLoader(Config config){
+        this(config.getClassPath());
+        if(config.getClassPath()==null){
+            this.projectPath= config.getPackageName()+"/out/production/classes";
+        }
+    }
+
+    /**
      *  the dir path of class
      *  default is project+ /out/production/classes
      */
     private String projectPath;
 
-    public ApiClassLoader(Config config){
-        this.projectPath= config.getPackageName()+"/out/production/classes";
-    }
-
-    public ApiClassLoader(String projectPath){
-        this.projectPath = projectPath;
-    }
 
     private byte[] loadByte(String name) throws Exception {
         name = name.replaceAll("\\.", "/");
-        FileInputStream fis = new FileInputStream(projectPath + "/" + name
+        Path path = Paths.get(projectPath + "/" + name
                 + ".class");
-        int len = fis.available();
-        byte[] data = new byte[len];
-        fis.read(data);
-        fis.close();
-        return data;
+        return  Files.readAllBytes(path);
 
     }
 

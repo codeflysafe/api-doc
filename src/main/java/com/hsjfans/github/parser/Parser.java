@@ -1,6 +1,7 @@
 package com.hsjfans.github.parser;
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.hsjfans.github.config.Config;
 import com.hsjfans.github.model.ApiTree;
 
 import java.util.List;

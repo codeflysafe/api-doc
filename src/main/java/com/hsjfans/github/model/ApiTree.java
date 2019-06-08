@@ -31,7 +31,7 @@ public class ApiTree implements Serializable {
 
 
     /**
-     *
+     * @name 测试get
      */
     @RequestMapping(value = "/789")
     public void get(){
@@ -39,7 +39,9 @@ public class ApiTree implements Serializable {
     }
 
 
-
+    /**
+     * @name 测试set
+     */
     @RequestMapping("/123-12312")
     public void set(){
         return;

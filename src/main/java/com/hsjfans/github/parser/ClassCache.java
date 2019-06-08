@@ -1,6 +1,7 @@
 package com.hsjfans.github.parser;
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import com.google.common.collect.Maps;
 
 import java.util.Map;
@@ -18,7 +19,7 @@ public class ClassCache {
 
     private static final Map<String,Class<?>>  classCache ;
 
-    private static final Map<String, CompilationUnit> compilationUnitCache;
+    private static final Map<String, TypeDeclaration<?>> compilationUnitCache;
 
     static {
         classCache = Maps.newHashMap();
@@ -26,7 +27,7 @@ public class ClassCache {
     }
 
 
-    public static void putCompilationUnit(String filePath,CompilationUnit compilationUnit){
+    public static void putCompilationUnit(String filePath,TypeDeclaration compilationUnit){
         boolean contain;
         compilationUnitReadWriteLock.readLock().lock();
         contain = compilationUnitCache.containsKey(filePath);
@@ -39,8 +40,8 @@ public class ClassCache {
         compilationUnitReadWriteLock.writeLock().unlock();
     }
 
-    public static CompilationUnit getCompilationUnit(String filePath){
-        CompilationUnit compilationUnit;
+    public static TypeDeclaration<?> getCompilationUnit(String filePath){
+        TypeDeclaration compilationUnit;
         compilationUnitReadWriteLock.readLock().lock();
         compilationUnit = compilationUnitCache.get(filePath);
         compilationUnitReadWriteLock.readLock().unlock();
@@ -75,7 +76,7 @@ public class ClassCache {
         return classCache;
     }
 
-    public static Map<String, CompilationUnit> getCompilationUnitCache() {
-        return compilationUnitCache;
+    public static Map<String, TypeDeclaration<?>> getCompilationUnitCache() {
+        return getCompilationUnitCache();
     }
 }

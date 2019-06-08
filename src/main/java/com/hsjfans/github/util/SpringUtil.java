@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +16,8 @@ import java.util.Set;
 public class SpringUtil {
 
     public static final Map<String,RequestMethod[]> map;
+
+
 
     public static final List<String> SPRING_CONTROLLER_METHOD_NAMES= Lists.newArrayList(
             PostMapping.class.getSimpleName(), DeleteMapping.class.getSimpleName(),
@@ -30,6 +33,8 @@ public class SpringUtil {
         map.put( PutMapping.class.getSimpleName(),new RequestMethod[]{RequestMethod.PUT});
         map.put( PatchMapping.class.getSimpleName(),new RequestMethod[]{RequestMethod.PATCH});
         map.put( RequestMapping.class.getSimpleName(),new RequestMethod[]{});
+
+
     }
 
 
