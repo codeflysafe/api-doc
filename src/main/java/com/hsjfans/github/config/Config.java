@@ -15,8 +15,10 @@ public class Config {
 
     /**
      * the path to store the generated docs
+     *
+     * default is src/static/
      */
-    private String outPath;
+    private String outPath = "src/static/";
 
     /**
      *  the path of classes files
@@ -31,6 +33,12 @@ public class Config {
 
 
     private String mvnPath;
+
+
+    /**
+     *  api doc name  -  xxx 接口文档
+     */
+    private String docName;
 
 
 

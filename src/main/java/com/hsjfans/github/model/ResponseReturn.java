@@ -18,7 +18,7 @@ public class ResponseReturn {
     /**
      *  the description
      */
-    private String description;
+    private String description = "";
 
 
     /**

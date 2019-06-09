@@ -2,8 +2,10 @@ package com.hsjfans.github.util;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.lang.annotation.Annotation;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,6 +45,15 @@ public class CollectionUtil {
            annotationMap.put(annotation.annotationType().getName(),annotation);
         }
         return annotationMap;
+    }
+
+
+    public static String requestMethodsToString(RequestMethod[] requestMethods){
+        StringBuilder builder = new StringBuilder();
+        Arrays.stream(requestMethods).forEach(requestMethod->{
+            builder.append(requestMethod.name());
+        });
+        return builder.toString();
     }
 
 }

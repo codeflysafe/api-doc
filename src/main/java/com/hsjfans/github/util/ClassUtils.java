@@ -12,6 +12,8 @@ import com.github.javaparser.javadoc.Javadoc;
 import com.github.javaparser.javadoc.JavadocBlockTag;
 import com.google.common.collect.Lists;
 import com.hsjfans.github.config.Config;
+import com.hsjfans.github.generator.Generator;
+import com.hsjfans.github.generator.HtmlGenerator;
 import com.hsjfans.github.model.*;
 import com.hsjfans.github.model.RequestParam;
 import com.hsjfans.github.parser.ClassCache;
@@ -206,9 +208,9 @@ public class ClassUtils {
             }
 
             controllerMethod.setParams(requestParams);
-            responseReturn.setType(method.getReturnType().getTypeName());
+            responseReturn.setType(method.getReturnType().getSimpleName());
             if(responseReturn.getName()==null){
-                responseReturn.setName(method.getReturnType().getName());
+                responseReturn.setName(method.getReturnType().getSimpleName());
             }
             controllerMethod.setResponseReturn(responseReturn);
             if(controllerMethod.isIgnore()){return null;}
@@ -383,10 +385,14 @@ public class ClassUtils {
         String realPath = "/Volumes/doc/projects/java/api";
         Config config = new Config();
         config.setPackageName(realPath);
+        config.setDocName("xxx接口文档");
         config.setGradle(true);
         config.setGradlePath("");
         Parser parser = new SpringParser(config);
-        parser.parse(config.getPackageName(),true);
+        ApiTree apiTree = parser.parse(config.getPackageName(),true);
+//        System.out.println(apiTree);
+        Generator generator = new HtmlGenerator();
+        generator.from(apiTree,config);
 
     }
 

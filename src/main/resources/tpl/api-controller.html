@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>${controller-name}</title>
+    <link rel="import" href="js.html" >
+</head>
+<body>
+<nav class="navbar navbar-default">
+    <div class="container">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="./index.html">
+                <img style="height: 100%" alt="${api-url-name}" src="https://raw.githubusercontent.com/hsjfans/git_resource/master/20190609204505.png">
+            </a>
+            <p class="navbar-text"> Generated via java-doc-api </p>
+        </div>
+    </div>
+</nav>
+<div class="container">
+    <div class="alert alert-warning" role="alert">
+        本页解析 `@Controller` 或 `@RestController` 类内的方法，使用详见<a href="https://github.com/hsjfans/api-doc/wiki">wiki</a>
+    </div>
+    <div class="row">
+        <a href="./index.html"> <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span> 首页 </a>
+    </div>
+    <div style="margin-top: 30px">
+        <h3> ${controller-name} </h3>
+        <p> <span class="label label-warning">数量:</span> ${count} </p>
+        <p> <span class="label label-info">Description:</span> ${controller-description} </p>
+        <p> <span class="label label-success">Author:</span> ${author}  </p>
+        <p> <span class="label label-primary">GroupUrl:</span> ${baseUrl} </p>
+        <ul style="margin-top: 20px; padding: 10px">
+            ${controller-methods}
+        </ul>
+    </div>
+
+</div>
+
+
+
+
+
+</body>
+</html>

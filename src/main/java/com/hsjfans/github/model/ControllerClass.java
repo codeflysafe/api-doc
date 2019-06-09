@@ -45,7 +45,7 @@ public class ControllerClass implements Serializable {
     /**
      *  author
      */
-    private String author;
+    private String author = "";
 
 
     private String description;

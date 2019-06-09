@@ -74,7 +74,11 @@ In filed:
 
 ## TODO LIST
 
-- Extend  the Java doc
+- [x] Extend  the Java doc
+- [ ] support auto build
+- [ ] generator html doc
+- [ ] part generator
+
 
 
 
