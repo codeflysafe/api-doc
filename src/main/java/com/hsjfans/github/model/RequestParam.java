@@ -68,5 +68,7 @@ public class RequestParam implements Serializable {
     private List<RequestParam> params;
 
 
+    private Object[] enumValues;
+
 
 }

@@ -23,9 +23,12 @@ public abstract class AbstractParser implements Parser  {
 
     protected final Config config;
 
+    private final ApiTree apiTree;
+
     public AbstractParser(Config config){
         this.config = config;
         this.classLoader = new ApiClassLoader(config);
+        this.apiTree = new ApiTree();
     }
 
 
@@ -43,14 +46,21 @@ public abstract class AbstractParser implements Parser  {
         Set<CompilationUnit> compilationUnits =  getAllControllerClass(javaFiles);
         Set<ControllerClass> controllerClasses = Sets.newHashSet();
         compilationUnits.forEach(compilationUnit -> parseCompilationUnit(compilationUnit,controllerClasses));
-        return null;
+        this.apiTree.insertAll(controllerClasses);
+        return apiTree;
     }
 
 
     @Override
     public ApiTree parse(List<String> projectPaths, boolean recursive) throws ParserException {
-       // todo
-        return null;
+        projectPaths.forEach(path->{
+            try {
+                this.apiTree.union(this.parse(path,recursive));
+            } catch (ParserException e) {
+                e.printStackTrace();
+            }
+        });
+        return this.apiTree;
     }
 
 

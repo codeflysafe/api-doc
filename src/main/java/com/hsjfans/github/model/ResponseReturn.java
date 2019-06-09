@@ -2,6 +2,8 @@ package com.hsjfans.github.model;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
@@ -11,7 +13,7 @@ public class ResponseReturn {
     /**
      *  the return item
      */
-    private ReturnItem returnItem;
+    private List<RequestParam> returnItem;
 
     /**
      *  the description
@@ -24,6 +26,10 @@ public class ResponseReturn {
      */
     private String name;
 
+    /**
+     *  the type
+     */
+    private String type;
 
 
 

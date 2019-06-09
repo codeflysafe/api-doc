@@ -1,53 +1,45 @@
 package com.hsjfans.github.model;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import lombok.Data;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
-@Controller
-@RequestMapping(value = "/123/",method = {RequestMethod.POST,RequestMethod.GET})
+
+@Data
 public class ApiTree implements Serializable {
 
-    private static  final ConcurrentMap<Class<?>,ControllerClass> controllerClassMap
-            = Maps.newConcurrentMap();
+    private final Set<ControllerClass> set
+            = Sets.newHashSet();
 
     /**
-     *  insert the controller cl
-     * @param cl
+     * insert the controller cl
+     *
+     * @param controllerClass
      */
-    @PatchMapping(value ={ "/123","/456"})
-    public void insert(Class<?> cl,ControllerClass controllerClass){
-        controllerClassMap.putIfAbsent(cl,controllerClass);
+    public void insert(ControllerClass controllerClass) {
+        set.add(controllerClass);
     }
 
 
-    /**
-     * @name 测试get
-     */
-    @RequestMapping(value = "/789")
-    public void get(){
-        return;
+    public void insertAll(Collection<? extends ControllerClass> controllerClasses) {
+        set.addAll(controllerClasses);
     }
 
 
-    /**
-     * @name 测试set
-     */
-    @RequestMapping("/123-12312")
-    public void set(){
-        return;
-    }
-
-    public static ConcurrentMap<Class<?>, ControllerClass> getControllerClassMap() {
-        return controllerClassMap;
+    public void union(ApiTree apiTree) {
+        set.addAll(apiTree.getSet());
     }
 }

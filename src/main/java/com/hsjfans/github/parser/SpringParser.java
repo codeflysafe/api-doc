@@ -2,8 +2,10 @@ package com.hsjfans.github.parser;
 
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.google.common.collect.Lists;
@@ -105,22 +107,31 @@ public class SpringParser extends AbstractParser{
 
                LogUtil.info(" className = %s 加载完毕 %s",className,controllerClass);
                final List<ControllerMethod> controllerMethods = Lists.newArrayListWithCapacity(cl.getMethods().length);
+
                // just public method
+               // PostMapping GetMapping ...
                Arrays.stream(cl.getMethods())
                        .filter(method ->
                        Arrays.stream(method.getAnnotations()).anyMatch(annotation ->
                                SpringUtil.map.containsKey(annotation.annotationType().getSimpleName())))
                .forEach(method -> {
+//                     LogUtil.info(" method signature  is %s",methodSignature(method));
+//                   LogUtil.info(" methodDeclarations  are %s",typeDeclaration.getMethods().get(0).getSignature().asString());
 //                   LogUtil.info(" methodName is %s annotations len = %s ",method.getName(),method.getAnnotations()[0].annotationType().getSimpleName());
-                   List<MethodDeclaration> methodDeclarations = typeDeclaration.getMethodsByName(method.getName());
-//                   LogUtil.info( " methodDeclarations is %s",methodDeclarations.toString());
+                    List<MethodDeclaration> methodDeclarations = typeDeclaration.getMethodsBySignature(method.getName(),methodSignature(method));
+//                    typeDeclaration.getMethods().forEach(methodDeclaration -> {
+//                        System.out.println(methodDeclaration.getSignature().asString());
+//                    });
+                   LogUtil.info( " methodDeclarations is %s and method is %s ",methodDeclarations.toString(),method.getName());
                    if(methodDeclarations.size()>0){
                        ControllerMethod controllerMethod = null;
                        try {
-                           controllerMethod = ClassUtils.parseMethodComment(methodDeclarations.get(0).getComment().orElse(null),method);
+                           controllerMethod = ClassUtils.parseMethodComment(methodDeclarations.get(0),method);
                            if(controllerMethod!=null){
                                controllerMethod.setAClass(cl);
+                               controllerMethod.setMethod(method);
                                controllerMethods.add(controllerMethod);
+                               LogUtil.info( " methodDeclarations %s 解析完毕",methodDeclarations.toString());
                            }
                        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
                            LogUtil.error(" err = %s ",e.getMessage());
@@ -137,14 +148,12 @@ public class SpringParser extends AbstractParser{
 
     }
 
-    private static String methodSignature(Method method){
-        StringBuilder stringBuilder = new StringBuilder(method.getName());
-        Arrays.stream(method.getParameters()).forEach(
-                parameter -> {
-                    stringBuilder.append(parameter.getType().getSimpleName());
-                }
-        );
-        return stringBuilder.toString();
+    private static String[] methodSignature(Method method){
+        String[] strings = new String[method.getParameters().length];
+        for (int i = 0; i < method.getParameters().length; i++) {
+            strings[i] = method.getParameters()[i].getType().getSimpleName();
+        }
+        return strings;
     }
 
 

@@ -3,7 +3,9 @@ package com.hsjfans.github.util;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.javadoc.Javadoc;
@@ -21,10 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -108,14 +107,11 @@ public class ClassUtils {
 
     /**
      *  parse the method  comment to Param
-     * @param comment
+     * @param methodDeclaration
      * @param method
      * @return
      */
-    public static ControllerMethod parseMethodComment(Comment comment, Method method) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        if(comment==null){return null;}
-
-        LogUtil.info("comment = %s ,method = %s",comment.toString(),method.getName());
+    public static ControllerMethod parseMethodComment(MethodDeclaration methodDeclaration, Method method) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         ControllerMethod controllerMethod = new ControllerMethod();
         List<Annotation> annotations = Arrays.stream(method.getAnnotations()).filter(
@@ -143,92 +139,85 @@ public class ClassUtils {
             }
         }
 
+        if(controllerMethod.getName()==null){
+            controllerMethod.setName(method.getName());
+        }
+
+
+        final List<RequestParam> requestParams = Lists.newArrayListWithCapacity(methodDeclaration.getParameters().size());
+        final ResponseReturn responseReturn = new ResponseReturn();
 
         // start handle comment
-        Javadoc javadoc = comment.parse();
-//        System.out.println(javadoc);
-        LogUtil.info(" javaDoc is  %s",javadoc);
-        final List<RequestParam> requestParams = Lists.newArrayListWithCapacity(javadoc.getBlockTags().size());
-        final ResponseReturn responseReturn = new ResponseReturn();
-        javadoc.getBlockTags().forEach(javadocBlockTag ->
-        {
-            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
-               controllerMethod.setIgnore(true);
-               return;
-            }
-            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
-                controllerMethod.setName(javadocBlockTag.getContent().toText());
-            }
-            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.PARAM)){
-                RequestParam requestParam = new RequestParam();
-                requestParam.setFuzzy(javadocBlockTag.isInlineFuzzy());
-                requestParam.setNecessary(!javadocBlockTag.isInlineIgnore());
-                requestParam.setName(javadocBlockTag.getName().orElse(""));
-                requestParam.setDescription(javadocBlockTag.getContent().toText());
+        Javadoc javadoc ;
+        if(methodDeclaration.getJavadoc().isPresent()){
+            javadoc = methodDeclaration.getJavadoc().get();
+            controllerMethod.setDescription(javadoc.getDescription().toText());
 
-                // 这里只解析 @param 参数
-                javadocBlockTag.getName().ifPresent(
-                        name->{
-                            LogUtil.info("  javadocBlockTag name is %s  ",name);
-                            LogUtil.info("  method.getParameters() are %s",method.getParameters()[0].getName());
-                            // 判断请求参数是否为结构体，如果是 则进行解析
-                           List<Parameter> parameters =  Arrays.stream(method.getParameters()).filter(parameter->parameter.getName().equals(name)&&!parameter.getType().isPrimitive())
-                                    .collect(Collectors.toList());
-                           if(parameters.size()>0){
-                               LogUtil.info("  parameter is %s  ",parameters.get(0).getName());
-                              requestParam.setParams(parseRequestParam(parameters.get(0).getType()));
-                           }
-                        }
-                );
+            for (int i = 0; i < methodDeclaration.getParameters().size(); i++) {
+                com.github.javaparser.ast.body.Parameter parameter = methodDeclaration.getParameter(i);
+                Parameter nativeParameter = method.getParameters()[i];
+                List<JavadocBlockTag> javadocBlockTags = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getName().isPresent()&&javadocBlockTag.getType().equals(JavadocBlockTag.Type.PARAM)&&javadocBlockTag.getName().get().equals(parameter.getNameAsString()))
+                        .collect(Collectors.toList());
 
-                requestParams.add(requestParam);
+                if(javadocBlockTags.size()>0){
+                    JavadocBlockTag javadocBlockTag = javadocBlockTags.get(0);
+                    RequestParam requestParam = new RequestParam();
+                    requestParam.setFuzzy(javadocBlockTag.isInlineFuzzy());
+                    requestParam.setNecessary(!javadocBlockTag.isInlineIgnore());
+                    requestParam.setName(javadocBlockTag.getName().orElse(null));
+                    requestParam.setDescription(javadocBlockTag.getContent().toText());
+                    requestParam.setType(nativeParameter.getType().getTypeName());
+                    // 这里只解析 @param 参数
+                    // 判断请求参数是否为结构体，如果是 则进行解析
+                    if (!nativeParameter.getType().isPrimitive()){
+                        List<RequestParam> requestParams1 = parseRequestParam(nativeParameter.getType());
+//                        System.out.println(" requestParams1 is "+requestParams1);
+                        requestParam.setParams(requestParams1);
+                    }
+
+                    if(requestParam.getName()==null){
+                        requestParam.setName(nativeParameter.getName());
+                    }
+
+                    requestParams.add(requestParam);
+                }
+
             }
 
-            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.RETURN)){
+            List<JavadocBlockTag> javadocBlockTags = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getName().isPresent()&&javadocBlockTag.getType().equals(JavadocBlockTag.Type.RETURN))
+                    .collect(Collectors.toList());
+            if(javadocBlockTags.size()>0){
+                JavadocBlockTag javadocBlockTag = javadocBlockTags.get(0);
                 responseReturn.setDescription(javadocBlockTag.getContent().toText());
-                responseReturn.setDescription(javadocBlockTag.getName().orElse(""));
-               //  ReturnItem returnItem = new ReturnItem();
+                responseReturn.setName(javadocBlockTag.getName().orElse(null));
+                //  ReturnItem returnItem = new ReturnItem();
 
                 // 返回值只解析 description
             }
 
-        });
+            List<JavadocBlockTag> authors = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getName().isPresent()&&javadocBlockTag.getType().equals(JavadocBlockTag.Type.AUTHOR))
+                    .collect(Collectors.toList());
+            if(authors.size()>0){
+                controllerMethod.setAuthor(authors.get(0).getName().get());
+            }
+            // parse method return
+            if(!method.getReturnType().isPrimitive()){
+                responseReturn.setReturnItem(parseRequestParam(method.getReturnType()));
+            }
 
-
-        // parse method return
-        parseResponseReturn(method.getReturnType(),responseReturn);
-
-
-
-        controllerMethod.setParams(requestParams);
-        controllerMethod.setResponseReturn(responseReturn);
-        if(controllerMethod.isIgnore()){return null;}
-        return controllerMethod;
-    }
-
-
-
-    /**
-     *  parse the method  comment to Param
-     * @param returnClass comment {@ignore}
-     * @param responseReturn responseReturn
-     * @return
-     */
-    private static List<ReturnItem> parseResponseReturn(Class<?> returnClass,ResponseReturn responseReturn){
-
-        if(returnClass.isPrimitive()){
-
-        }else if(returnClass.isArray()){
-
-        }else if(returnClass.isEnum()){
-
-        }else {
-
+            controllerMethod.setParams(requestParams);
+            responseReturn.setType(method.getReturnType().getTypeName());
+            if(responseReturn.getName()==null){
+                responseReturn.setName(method.getReturnType().getName());
+            }
+            controllerMethod.setResponseReturn(responseReturn);
+            if(controllerMethod.isIgnore()){return null;}
+            return controllerMethod;
         }
 
         return null;
-
     }
+
 
 
     /**
@@ -238,10 +227,22 @@ public class ClassUtils {
     private static List<RequestParam> parseRequestParam(Class<?> request){
         List<RequestParam> requestParams = Lists.newLinkedList();
         TypeDeclaration typeDeclaration = ClassCache.getCompilationUnit(request.getName());
+//
         if (typeDeclaration==null){
             return requestParams;
         }
-        Arrays.stream(request.getFields()).forEach(field -> {
+//        System.out.println(typeDeclaration.getName());
+        Arrays.stream(request.getDeclaredFields()).filter(field -> !field.isSynthetic()&&
+                (field.getModifiers() & Modifier.FINAL) == 0
+                && (field.getModifiers() & Modifier.STATIC)==0
+                && (field.getModifiers() & Modifier.NATIVE)==0
+                && (field.getModifiers() & Modifier.ABSTRACT)==0
+                && (field.getModifiers() & Modifier.INTERFACE)==0
+                && (field.getModifiers() & Modifier.TRANSIENT)==0
+        ).
+                forEach(field -> {
+
+                    System.out.println(" filed = "+field.getType());
             RequestParam requestParam = new RequestParam();
             requestParam.setType(field.getType().getTypeName());
             if(field.getType().isPrimitive()){
@@ -249,17 +250,36 @@ public class ClassUtils {
                     parseFiledComment(((FieldDeclaration)fieldDeclaration).getComment().orElse(null),requestParam);
                     if(requestParam.getName()==null){
                         requestParam.setName(field.getName());
+                        requestParam.setType(field.getType().getSimpleName());
                     }
                 });
 
             }else if(field.getType().isArray()) {
-                // todo
+
+                Field[] fields = field.getType().getFields();
+                requestParam.setName(field.getName());
+                requestParam.setType(field.getType().getTypeName());
+                if(fields.length>0){
+                    requestParam.setParams(parseRequestParam(fields[0].getType()));
+                }
+            }
+            else if(field.getType().isEnum()){
+//                System.out.println(" enum is"+field);
+                Object[] enumValues = new Object[field.getType().getEnumConstants().length];
+
+                for (int i = 0; i <field.getType().getEnumConstants().length ; i++) {
+                    enumValues[i] = field.getType().getEnumConstants()[i];
+                }
+
+                requestParam.setEnumValues(enumValues);
 
             }else if(!field.getType().isInterface()) {
                 requestParam.setParams(parseRequestParam(field.getType()));
             }
 
+            requestParam.setName(field.getName());
             requestParams.add(requestParam);
+
         });
 
         return requestParams;
@@ -293,13 +313,6 @@ public class ClassUtils {
 
     }
 
-
-
-    private static void parseReturnComment(Comment comment,ReturnItem returnItem){
-        if(comment==null){return;}
-
-
-    }
 
 
     /**
@@ -358,24 +371,6 @@ public class ClassUtils {
 
 
 
-//    public static Class<?> parseImportClass(CompilationUnit compilationUnit){
-//        compilationUnit.getImports().forEach(
-//                importDeclaration->{
-//                    return;
-//                }
-//        );
-//        return null;
-//    }
-//
-//    /**
-//     * get file name without extension
-//     * @param javaFile
-//     * @return string
-//     */
-//    public static String getJavaFileName(File javaFile){
-//        String fileName = javaFile.getName();
-//        return fileName.substring(0, fileName.lastIndexOf("."));
-//    }
 
 
     /**
