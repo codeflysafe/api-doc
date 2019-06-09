@@ -1,5 +1,9 @@
-# api-doc
+Welcome to the api-doc wiki!
 
+![](https://raw.githubusercontent.com/hsjfans/git_resource/master/20190609204505.png)
+
+
+[English](./readme.md) [简体中文](./readme_zh.md)
 
 ## Aim
 
@@ -21,11 +25,10 @@ The man reason is that i want a easy and non-invasive tool.
 
 
 ## how to use ? 
+- [Get Start](./wiki/Get-Start)
+- [Java Doc Tag](./wiki/Java-Doc_Tag)
+- [JavaParser](./wiki/JavaParser)
 
-
-- [Get Start](./Get-Start)
-- [Java Doc Tag](./Java-Doc_Tag)
-- [JavaParser](./JavaParser)
 
 
 

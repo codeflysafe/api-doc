@@ -2,6 +2,8 @@ Welcome to the api-doc wiki!
 
 ![](https://raw.githubusercontent.com/hsjfans/git_resource/master/20190609204505.png)
 
+[English](./readme.md) [简体中文](./readme_zh.md)
+
 ## 初衷
 
 原因很简单，最主要是 
@@ -23,9 +25,9 @@ Welcome to the api-doc wiki!
 
 ## 使用文档
 
-- [Get Start](./Get-Start)
-- [Java Doc Tag](./Java-Doc_Tag)
-- [JavaParser](./JavaParser)
+- [Get Start](./wiki/Get-Start)
+- [Java Doc Tag](./wiki/Java-Doc_Tag)
+- [JavaParser](./wiki/JavaParser)
 
 ## TODO LIST
 
