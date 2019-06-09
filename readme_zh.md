@@ -25,9 +25,9 @@ Welcome to the api-doc wiki!
 
 ## 使用文档
 
-- [Get Start](./wiki/Get-Start)
-- [Java Doc Tag](./wiki/Java-Doc_Tag)
-- [JavaParser](./wiki/JavaParser)
+- [Get Start](https://github.com/hsjfans/api-doc/wiki/Get-Start)
+- [Java Doc Tag](https://github.com/hsjfans/api-doc/wiki/Java-Doc_Tag)
+- [JavaParser](https://github.com/hsjfans/api-doc/wiki/JavaParser)
 
 ## TODO LIST
 

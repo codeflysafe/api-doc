@@ -25,9 +25,9 @@ The man reason is that i want a easy and non-invasive tool.
 
 
 ## how to use ? 
-- [Get Start](./wiki/Get-Start)
-- [Java Doc Tag](./wiki/Java-Doc_Tag)
-- [JavaParser](./wiki/JavaParser)
+- [Get Start](https://github.com/hsjfans/api-doc/wiki/Get-Start)
+- [Java Doc Tag](https://github.com/hsjfans/api-doc/wiki/Java-Doc_Tag)
+- [JavaParser](https://github.com/hsjfans/api-doc/wiki/JavaParser)
 
 
 
