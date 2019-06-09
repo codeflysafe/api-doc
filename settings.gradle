@@ -1,2 +1,3 @@
 rootProject.name = 'java-api-doc'
+include 'spring-api-demo'
 

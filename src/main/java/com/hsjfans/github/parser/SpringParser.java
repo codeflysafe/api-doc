@@ -83,6 +83,7 @@ public class SpringParser extends AbstractParser{
     protected void   parseCompilationUnit(CompilationUnit compilationUnit,final Set<ControllerClass> controllerClasses) {
         compilationUnit.getPrimaryType().ifPresent(typeDeclaration ->
         {
+            LogUtil.info(" start parse typeDeclaration %s ",typeDeclaration.getName());
             ControllerClass controllerClass ;
             List<AnnotationExpr> annotationExprs =  typeDeclaration.getAnnotations().stream().filter(annotationExpr -> annotationExpr.getNameAsString().equals("Controller") ||
                     annotationExpr.getNameAsString().equals("RestController")).collect(Collectors.toList());
@@ -98,7 +99,7 @@ public class SpringParser extends AbstractParser{
                    LogUtil.info("开始加载 controller 类  name %s  ",className);
                    cl = classLoader.loadClass(className);
                }catch (Exception e){
-                   LogUtil.warn(" className = %s 加载失败 err = %s ",className,e.getMessage());
+                   LogUtil.warn(" controller 类 className = %s 加载失败 err = %s ",className,e.getMessage());
                    return;
                }
 
@@ -116,7 +117,7 @@ public class SpringParser extends AbstractParser{
                                SpringUtil.map.containsKey(annotation.annotationType().getSimpleName())))
                .forEach(method -> {
 //                     LogUtil.info(" method signature  is %s",methodSignature(method));
-//                   LogUtil.info(" methodDeclarations  are %s",typeDeclaration.getMethods().get(0).getSignature().asString());
+                   LogUtil.info(" methodDeclarations  are %s",typeDeclaration.getMethods().get(0).getSignature().asString());
 //                   LogUtil.info(" methodName is %s annotations len = %s ",method.getName(),method.getAnnotations()[0].annotationType().getSimpleName());
                     List<MethodDeclaration> methodDeclarations = typeDeclaration.getMethodsBySignature(method.getName(),methodSignature(method));
 //                    typeDeclaration.getMethods().forEach(methodDeclaration -> {

@@ -150,9 +150,11 @@ public class HtmlGenerator extends AbstractGenerator {
         StringBuilder params = new StringBuilder();
         requestParams.forEach(requestParam->{
             if(requestParam.getParams()!=null&&requestParam.getParams().size()>0){
-                params.append(String.format(Union_No_head,
+                params.append(String.format(Request_Params_Table_No_head,
                         requestParam.getName(),
-                        Request_Params_Table_head.replace("${requestParams}",generateRequestParams(requestParam.getParams()))
+                        Request_Params_Table_head.replace("${requestParams}",generateRequestParams(requestParam.getParams())),
+                        StringUtil.enumToStrs(requestParam.getEnumValues()),requestParam.isNecessary(),requestParam.isFuzzy(),
+                        requestParam.getDescription()
                         ));
             }else {
                 params.append(String.format(Request_Params_Table_No_head,requestParam.getName(),requestParam.getType(),
@@ -170,9 +172,11 @@ public class HtmlGenerator extends AbstractGenerator {
         StringBuilder responses = new StringBuilder();
 
         if(responseReturn.getReturnItem()!=null&&responseReturn.getReturnItem().size()>0){
-            responses.append(String.format(Union_No_head,
+            responses.append(String.format(Response_Return_Table_No_Head,
                     responseReturn.getName(),
-                    Request_Params_Table_head.replace("${requestParams}",generateRequestParams(responseReturn.getReturnItem()))
+                    Response_Return_Table_Head.replace("${responses}",generateResponseItems(responseReturn.getReturnItem())),
+                    StringUtil.enumToStrs(responseReturn.getEnumValues()),
+                    responseReturn.getDescription()
             ));
 //            responses.append(Response_Return_Table_Head.replace("${responses}",generateResponseItems(responseReturn.getReturnItem())));
         }else {
@@ -189,11 +193,12 @@ public class HtmlGenerator extends AbstractGenerator {
         StringBuilder responses = new StringBuilder();
         requestParams.forEach(requestParam -> {
             if(requestParam.getParams()!=null&&requestParam.getParams().size()>0){
-                responses.append(String.format(Union_No_head,
+                responses.append(String.format(Response_Return_Table_No_Head,
                         requestParam.getName(),
-                        Request_Params_Table_head.replace("${requestParams}",generateRequestParams(requestParam.getParams()))
+                        Response_Return_Table_Head.replace("${responses}",generateResponseItems(requestParam.getParams())),
+                        StringUtil.enumToStrs(requestParam.getEnumValues()),
+                        requestParam.getDescription()
                 ));
-                responses.append(Response_Return_Table_Head.replace("${responses}",generateResponseItems(requestParam.getParams())));
             }else {
                 responses.append(String.format(Response_Return_Table_No_Head,
                         requestParam.getName(),

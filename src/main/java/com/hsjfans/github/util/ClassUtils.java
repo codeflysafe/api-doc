@@ -171,7 +171,7 @@ public class ClassUtils {
                     requestParam.setType(nativeParameter.getType().getTypeName());
                     // 这里只解析 @param 参数
                     // 判断请求参数是否为结构体，如果是 则进行解析
-                    if (!nativeParameter.getType().isPrimitive()){
+                    if (!nativeParameter.getType().isPrimitive()&&!nativeParameter.getType().getSimpleName().equals("String")){
                         List<RequestParam> requestParams1 = parseRequestParam(nativeParameter.getType());
 //                        System.out.println(" requestParams1 is "+requestParams1);
                         requestParam.setParams(requestParams1);
@@ -236,7 +236,7 @@ public class ClassUtils {
         if (typeDeclaration==null){
             return requestParams;
         }
-//        System.out.println(typeDeclaration.getName());
+//        System.out.println(typeDeclaration.getName()+typeDeclaration.getComment().toString());
         Arrays.stream(request.getDeclaredFields()).filter(field -> !field.isSynthetic()&&
                 (field.getModifiers() & Modifier.FINAL) == 0
                 && (field.getModifiers() & Modifier.STATIC)==0
@@ -246,11 +246,10 @@ public class ClassUtils {
                 && (field.getModifiers() & Modifier.TRANSIENT)==0
         ).
                 forEach(field -> {
-
-                    System.out.println(" filed = "+field.getType());
+//                    System.out.println(" filed = "+field.getType());
             RequestParam requestParam = new RequestParam();
             requestParam.setType(field.getType().getTypeName());
-            if(field.getType().isPrimitive()){
+            if(field.getType().isPrimitive()||field.getType().getSimpleName().equals("String")){
                typeDeclaration.getFieldByName(field.getName()).ifPresent(fieldDeclaration -> {
                     parseFiledComment(((FieldDeclaration)fieldDeclaration).getComment().orElse(null),requestParam);
                     if(requestParam.getName()==null){
@@ -293,9 +292,10 @@ public class ClassUtils {
 
 
     // todo handle array
-    private static void parseFiledComment(Comment comment,RequestParam requestParam){
-        if(comment==null){return;}
+    private static RequestParam parseFiledComment(Comment comment,RequestParam requestParam){
+        if(comment==null){return requestParam;}
         Javadoc javadoc = comment.parse();
+//        System.out.println(" javaDoc is "+javadoc);
         javadoc.getBlockTags().forEach(javadocBlockTag -> {
             // if contains `@ignore`
             if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
@@ -311,11 +311,10 @@ public class ClassUtils {
                 requestParam.setFuzzy(true);
             }
 
-
         });
 
         requestParam.setDescription(javadoc.getDescription().toText());
-
+        return requestParam;
     }
 
 
@@ -385,7 +384,7 @@ public class ClassUtils {
     public static void main(String[] args) throws  ParserException {
 
         String testPath = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github";
-        String realPath = "/Volumes/doc/projects/java/api";
+        String realPath = "/Volumes/doc/projects/java/java-api-doc/spring-api-demo";
         Config config = new Config();
         config.setPackageName(realPath);
         config.setDocName("xxx接口文档");
