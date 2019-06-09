@@ -202,13 +202,16 @@ public class ClassUtils {
             if(authors.size()>0){
                 controllerMethod.setAuthor(authors.get(0).getName().get());
             }
-            // parse method return
-            if(!method.getReturnType().isPrimitive()){
-                responseReturn.setReturnItem(parseRequestParam(method.getReturnType()));
-            }
-
-            controllerMethod.setParams(requestParams);
             responseReturn.setType(method.getReturnType().getSimpleName());
+            // parse method return
+            if(!method.getReturnType().isPrimitive()&&!method.getReturnType().isEnum()){
+                responseReturn.setReturnItem(parseRequestParam(method.getReturnType()));
+            }else if(method.getReturnType().isEnum()){
+                responseReturn.setEnumValues(method.getReturnType().getEnumConstants());
+                responseReturn.setType("String");
+            }
+            controllerMethod.setParams(requestParams);
+
             if(responseReturn.getName()==null){
                 responseReturn.setName(method.getReturnType().getSimpleName());
             }
@@ -268,16 +271,16 @@ public class ClassUtils {
             else if(field.getType().isEnum()){
 //                System.out.println(" enum is"+field);
                 Object[] enumValues = new Object[field.getType().getEnumConstants().length];
-
                 for (int i = 0; i <field.getType().getEnumConstants().length ; i++) {
                     enumValues[i] = field.getType().getEnumConstants()[i];
                 }
-
                 requestParam.setEnumValues(enumValues);
+                requestParam.setType("String");
 
-            }else if(!field.getType().isInterface()) {
-                requestParam.setParams(parseRequestParam(field.getType()));
             }
+//            else if(!field.getType().isInterface()) {
+//                requestParam.setParams(parseRequestParam(field.getType()));
+//            }
 
             requestParam.setName(field.getName());
             requestParams.add(requestParam);

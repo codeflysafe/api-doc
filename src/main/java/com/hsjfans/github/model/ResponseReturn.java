@@ -31,6 +31,8 @@ public class ResponseReturn {
      */
     private String type;
 
+    private Object[] enumValues;
+
 
 
 }

@@ -2,13 +2,12 @@ package com.hsjfans.github.generator;
 
 
 import com.hsjfans.github.config.Config;
-import com.hsjfans.github.model.ApiTree;
-import com.hsjfans.github.model.ControllerClass;
-import com.hsjfans.github.model.ControllerMethod;
-import com.hsjfans.github.model.RequestParam;
+import com.hsjfans.github.model.*;
 import com.hsjfans.github.util.CollectionUtil;
 import com.hsjfans.github.util.FileUtil;
 import com.hsjfans.github.util.StringUtil;
+
+import java.util.List;
 
 
 /**
@@ -25,6 +24,51 @@ public class HtmlGenerator extends AbstractGenerator {
     private static final String Index = "index.html";
     private static final String urlTpl = "api-url.html";
     private static final String extraTpl = "js.html";
+
+    private static final String Request_Params_Table_No_head = " \n <tr>\n" +
+            "            <td>%s</td>\n" +
+            "            <td>%s</td>\n" +
+            "            <td>%s</td>\n" +
+            "            <td>%s</td>\n" +
+            "            <td>%s</td>\n" +
+            "            <td>%s</td>\n" +
+            "        </tr> ";
+    private static final String Union_No_head = " \n <tr>\n" +
+            "            <td>%s</td>\n" +
+            "            <td>%s</td>\n" +
+            "        </tr> ";
+
+    private static final String Request_Params_Table_head = "<table class=\"table\">\n" +
+            "        <tr align=\"center\">\n" +
+            "            <th>名称</th>\n" +
+            "            <th>类型</th>\n" +
+            "            <th>取值</th>\n" +
+            "            <th>必需</th>\n" +
+            "            <th>模糊</th>\n" +
+            "            <th>说明</th>\n" +
+            "        </tr>\n" +
+            "        ${requestParams}\n" +
+            "    </table>";
+
+    private static final String Response_Return_Table_Head = "<table class=\"table\">\n" +
+            "        <!--<caption><h4></h4></caption>-->\n" +
+            "        <tr align=\"center\">\n" +
+            "            <th>名称</th>\n" +
+            "            <th>类型</th>\n" +
+            "            <th>取值</th>\n" +
+            "            <th>说明</th>\n" +
+            "        </tr>\n" +
+            "        ${responses}\n" +
+            "    </table>";
+
+
+    private static final String Response_Return_Table_No_Head =
+            " <tr>\n" +
+                    "            <td>%s</td>\n" +
+                    "            <td>%s</td>\n" +
+                    "            <td>%s</td>\n" +
+                    "            <td>%s</td>\n" +
+                    "        </tr>";
 
 
     @Override
@@ -94,41 +138,71 @@ public class HtmlGenerator extends AbstractGenerator {
         method = method.replace("${api-url-description}",controllerMethod.getDescription());
         method = method.replace("${methods}", CollectionUtil.requestMethodsToString(controllerMethod.getMethods()));
         method = method.replace("${author}",controllerMethod.getAuthor());
-
-        StringBuilder params = new StringBuilder();
-        controllerMethod.getParams().forEach(requestParam->{
-            if(requestParam.getParams()==null){
-                params.append(String.format(" \n <tr>\n" +
-                        "            <td>%s</td>\n" +
-                        "            <td>%s</td>\n" +
-                        "            <td>%s</td>\n" +
-                        "            <td>%s</td>\n" +
-                        "            <td>%s</td>\n" +
-                        "            <td>%s</td>\n" +
-                        "        </tr> ",requestParam.getName(),requestParam.getType(),
-                        StringUtil.enumToStrs(requestParam.getEnumValues()),requestParam.isNecessary(),requestParam.isFuzzy(),
-                        requestParam.getDescription()));
-            }else {
-                // todo
-            }
-        });
-        method = method.replace("${requestParams}", params.toString());
-
-        StringBuilder responses = new StringBuilder();
-        responses.append(String.format(
-                " <tr>\n" +
-                        "            <td>%s</td>\n" +
-                        "            <td>%s</td>\n" +
-                        "            <td>%s</td>\n" +
-                        "        </tr>"
-        ,controllerMethod.getResponseReturn().getName(),
-                controllerMethod.getResponseReturn().getType(),
-                controllerMethod.getResponseReturn().getDescription()));
-
-        method = method.replace("${responses}", responses.toString());
+        method = method.replace("${requestParams}", generateRequestParams(controllerMethod.getParams()));
+        method = method.replace("${responses}", generateResponseReturn(controllerMethod.getResponseReturn()));
 
 
         FileUtil.to(this.config.getOutPath()+controllerClass.getName()+"_"+controllerMethod.getName()+".html",method);
+    }
+
+
+    private String generateRequestParams(List<RequestParam> requestParams){
+        StringBuilder params = new StringBuilder();
+        requestParams.forEach(requestParam->{
+            if(requestParam.getParams()!=null&&requestParam.getParams().size()>0){
+                params.append(String.format(Union_No_head,
+                        requestParam.getName(),
+                        Request_Params_Table_head.replace("${requestParams}",generateRequestParams(requestParam.getParams()))
+                        ));
+            }else {
+                params.append(String.format(Request_Params_Table_No_head,requestParam.getName(),requestParam.getType(),
+                        StringUtil.enumToStrs(requestParam.getEnumValues()),requestParam.isNecessary(),requestParam.isFuzzy(),
+                        requestParam.getDescription()));
+            }
+        });
+
+        return params.toString();
+
+    }
+
+    private String generateResponseReturn(ResponseReturn responseReturn){
+
+        StringBuilder responses = new StringBuilder();
+
+        if(responseReturn.getReturnItem()!=null&&responseReturn.getReturnItem().size()>0){
+            responses.append(String.format(Union_No_head,
+                    responseReturn.getName(),
+                    Request_Params_Table_head.replace("${requestParams}",generateRequestParams(responseReturn.getReturnItem()))
+            ));
+//            responses.append(Response_Return_Table_Head.replace("${responses}",generateResponseItems(responseReturn.getReturnItem())));
+        }else {
+            responses.append(String.format(Response_Return_Table_No_Head,
+                    responseReturn.getName(),
+                    responseReturn.getType(),
+                    StringUtil.enumToStrs(responseReturn.getEnumValues()),
+                    responseReturn.getDescription()));
+        }
+        return responses.toString();
+    }
+
+    private String generateResponseItems(List<RequestParam> requestParams){
+        StringBuilder responses = new StringBuilder();
+        requestParams.forEach(requestParam -> {
+            if(requestParam.getParams()!=null&&requestParam.getParams().size()>0){
+                responses.append(String.format(Union_No_head,
+                        requestParam.getName(),
+                        Request_Params_Table_head.replace("${requestParams}",generateRequestParams(requestParam.getParams()))
+                ));
+                responses.append(Response_Return_Table_Head.replace("${responses}",generateResponseItems(requestParam.getParams())));
+            }else {
+                responses.append(String.format(Response_Return_Table_No_Head,
+                        requestParam.getName(),
+                        requestParam.getType(),
+                        StringUtil.enumToStrs(requestParam.getEnumValues()),
+                        requestParam.getDescription()));
+            }
+        });
+        return responses.toString();
     }
 
     @Override
