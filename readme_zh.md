@@ -57,4 +57,4 @@ dependencies:
 
 - git hook
 
-- [java doc](https://docs.orac
+- [java doc](https://docs.oracle.com/javase/8/docs/technotes/tools/windows/javadoc.html)
