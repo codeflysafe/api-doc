@@ -16,32 +16,32 @@ import com.hsjfans.github.parser.SpringParser;
  */
 public class Booter {
 
-//    public static void main(String[] args) throws ParserException {
-//
-//        String realPath = "/Volumes/doc/projects/java/api";
-//        Config config = new Config();
-//        config.setPackageName(realPath);
-//        config.setDocName("接口文档");
-//        config.setApiName("api");
-//        Parser parser = new SpringParser(config);
-//        ApiTree apiTree = parser.parse(config.getPackageName(),true);
-//        Generator generator = new HtmlGenerator();
-//        generator.from(apiTree,config);
-//
-//    }
-
     public static void main(String[] args) throws ParserException {
 
-        String realPath = args[0];
+        String realPath = "/Volumes/doc/projects/java/api";
         Config config = new Config();
         config.setPackageName(realPath);
-        config.setDocName(args[1]);
-        config.setApiName(args[2]);
+        config.setDocName("接口文档");
+        config.setApiName("api");
         Parser parser = new SpringParser(config);
         ApiTree apiTree = parser.parse(config.getPackageName(),true);
         Generator generator = new HtmlGenerator();
         generator.from(apiTree,config);
 
     }
+
+//    public static void main(String[] args) throws ParserException {
+//
+//        String realPath = args[0];
+//        Config config = new Config();
+//        config.setPackageName(realPath);
+//        config.setDocName(args[1]);
+//        config.setApiName(args[2]);
+//        Parser parser = new SpringParser(config);
+//        ApiTree apiTree = parser.parse(config.getPackageName(),true);
+//        Generator generator = new HtmlGenerator();
+//        generator.from(apiTree,config);
+//
+//    }
 }
 

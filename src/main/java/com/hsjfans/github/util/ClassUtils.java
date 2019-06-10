@@ -14,6 +14,7 @@ import com.hsjfans.github.model.*;
 import com.hsjfans.github.model.RequestParam;
 import com.hsjfans.github.parser.ClassCache;
 import com.hsjfans.github.parser.ParserException;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -164,9 +165,14 @@ public class ClassUtils {
                     requestParam.setName(javadocBlockTag.getName().orElse(null));
                     requestParam.setDescription(javadocBlockTag.getContent().toText());
                     requestParam.setType(nativeParameter.getType().getTypeName());
+
                     // 这里只解析 @param 参数
                     // 判断请求参数是否为结构体，如果是 则进行解析
-                    if (!isParameterPrimitive(nativeParameter)&&!nativeParameter.getType().getSimpleName().equals("String")){
+
+                    Class<?> c = isParameterCollection(nativeParameter);
+                    if(c!=null){
+                        System.out.println(" c  is "+c);
+                    }else if (!isParameterPrimitive(nativeParameter)&&!nativeParameter.getType().getSimpleName().equals("String")){
                         List<RequestParam> requestParams1 = parseRequestParam(nativeParameter.getType());
 //                        System.out.println(" requestParams1 is "+requestParams1);
                         requestParam.setParams(requestParams1);
@@ -192,7 +198,7 @@ public class ClassUtils {
             }
             List<JavadocBlockTag> authors = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getType().equals(JavadocBlockTag.Type.AUTHOR))
                     .collect(Collectors.toList());
-            System.out.println(authors);
+//            System.out.println(authors);
             if(authors.size()>0){
                 controllerMethod.setAuthor(authors.get(0).getContent().toText());
             }
@@ -200,12 +206,12 @@ public class ClassUtils {
             // name
             List<JavadocBlockTag> names = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME))
                     .collect(Collectors.toList());
-            System.out.println(names);
+//            System.out.println(names);
             if(names.size()>0){
                 controllerMethod.setName(names.get(0).getContent().toText());
             }
             // parse method return
-            if(!isPrimitive(method.getReturnType())&&!method.getReturnType().isEnum()){
+            if(!isPrimitive(method.getReturnType())&&!method.getReturnType().isEnum()&&!method.getReturnType().getSimpleName().equals("String")){
                 responseReturn.setReturnItem(parseRequestParam(method.getReturnType()));
             }else if(method.getReturnType().isEnum()){
                 responseReturn.setEnumValues(method.getReturnType().getEnumConstants());
@@ -233,6 +239,8 @@ public class ClassUtils {
      */
     private static List<RequestParam> parseRequestParam(Class<?> request){
         List<RequestParam> requestParams = Lists.newLinkedList();
+
+
         TypeDeclaration typeDeclaration = ClassCache.getCompilationUnit(request.getName());
 //
         if (typeDeclaration==null){
@@ -284,8 +292,8 @@ public class ClassUtils {
                    }
                 });
 
-            }else if(field.getType().isArray()) {
-
+            }
+            else if(field.getType().isArray()) {
                 Field[] fields = field.getType().getFields();
                 requestParam.setName(field.getName());
                 requestParam.setType(field.getType().getTypeName());
@@ -302,6 +310,8 @@ public class ClassUtils {
                 requestParam.setEnumValues(enumValues);
                 requestParam.setType("String");
 
+            }else {
+                System.out.println(field.getName());
             }
 //            else if(!field.getType().isInterface()) {
 //                requestParam.setParams(parseRequestParam(field.getType()));
@@ -395,6 +405,34 @@ public class ClassUtils {
         return false;
 
     }
+
+    private static Class<?> isFieldCollection(Field field){
+
+       Type t = field.getGenericType();
+       if(t instanceof ParameterizedType){
+           ParameterizedType pt = (ParameterizedType) t;
+           return  (Class) pt.getActualTypeArguments()[0];//得到对象list中实例的类型
+       }
+       return null;
+    }
+
+
+    private static Class<?> isParameterCollection(Parameter parameter){
+        return isCollection(parameter.getType());
+    }
+
+    private static Class<?> isCollection(Class<?> c){
+        Type t = c.getGenericSuperclass();
+        if(t instanceof ParameterizedType){
+            ParameterizedType pt = (ParameterizedType) t;
+            return  (Class) pt.getActualTypeArguments()[0];//得到对象list中实例的类型
+        }
+        return null;
+    }
+
+
+
+
 
 
 
