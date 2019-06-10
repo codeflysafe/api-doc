@@ -114,7 +114,7 @@ public class SpringParser extends AbstractParser{
                        Arrays.stream(method.getAnnotations()).anyMatch(annotation ->
                                SpringUtil.map.containsKey(annotation.annotationType().getSimpleName())))
                .forEach(method -> {
-                    List<MethodDeclaration> methodDeclarations = typeDeclaration.getMethodsBySignature(method.getName(),methodSignature(method));
+                   List<MethodDeclaration> methodDeclarations = typeDeclaration.getMethodsBySignature(method.getName(),methodSignature(method));
                    LogUtil.info( " methodDeclarations is %s and method is %s ",methodDeclarations.toString(),method.getName());
                    if(methodDeclarations.size()>0){
                        ControllerMethod controllerMethod = null;

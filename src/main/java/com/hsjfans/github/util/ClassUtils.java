@@ -3,7 +3,6 @@ package com.hsjfans.github.util;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
@@ -11,15 +10,10 @@ import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.javadoc.Javadoc;
 import com.github.javaparser.javadoc.JavadocBlockTag;
 import com.google.common.collect.Lists;
-import com.hsjfans.github.config.Config;
-import com.hsjfans.github.generator.Generator;
-import com.hsjfans.github.generator.HtmlGenerator;
 import com.hsjfans.github.model.*;
 import com.hsjfans.github.model.RequestParam;
 import com.hsjfans.github.parser.ClassCache;
-import com.hsjfans.github.parser.Parser;
 import com.hsjfans.github.parser.ParserException;
-import com.hsjfans.github.parser.SpringParser;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -151,16 +145,19 @@ public class ClassUtils {
         Javadoc javadoc ;
         if(methodDeclaration.getJavadoc().isPresent()){
             javadoc = methodDeclaration.getJavadoc().get();
-            System.out.println(javadoc);
+//            System.out.println(javadoc);
             controllerMethod.setDescription(javadoc.getDescription().toText());
             for (int i = 0; i < methodDeclaration.getParameters().size(); i++) {
                 com.github.javaparser.ast.body.Parameter parameter = methodDeclaration.getParameter(i);
                 Parameter nativeParameter = method.getParameters()[i];
-                List<JavadocBlockTag> javadocBlockTags = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getName().isPresent()&&javadocBlockTag.getType().equals(JavadocBlockTag.Type.PARAM)&&javadocBlockTag.getName().get().equals(parameter.getNameAsString()))
+                List<JavadocBlockTag> javadocBlockTags = javadoc.getBlockTags().stream().filter(javadocBlockTag ->
+                        javadocBlockTag.getName().isPresent()&&javadocBlockTag.getType().equals(JavadocBlockTag.Type.PARAM)
+                                &&javadocBlockTag.getName().get().equals(parameter.getNameAsString()))
                         .collect(Collectors.toList());
 
                 if(javadocBlockTags.size()>0){
                     JavadocBlockTag javadocBlockTag = javadocBlockTags.get(0);
+                    System.out.println(" parameters javadocBlockTag = "+javadocBlockTag);
                     RequestParam requestParam = new RequestParam();
                     requestParam.setFuzzy(javadocBlockTag.isInlineFuzzy());
                     requestParam.setNecessary(!javadocBlockTag.isInlineIgnore());
@@ -169,7 +166,7 @@ public class ClassUtils {
                     requestParam.setType(nativeParameter.getType().getTypeName());
                     // 这里只解析 @param 参数
                     // 判断请求参数是否为结构体，如果是 则进行解析
-                    if (!nativeParameter.getType().isPrimitive()&&!nativeParameter.getType().getSimpleName().equals("String")){
+                    if (!isParameterPrimitive(nativeParameter)&&!nativeParameter.getType().getSimpleName().equals("String")){
                         List<RequestParam> requestParams1 = parseRequestParam(nativeParameter.getType());
 //                        System.out.println(" requestParams1 is "+requestParams1);
                         requestParam.setParams(requestParams1);
@@ -208,7 +205,7 @@ public class ClassUtils {
                 controllerMethod.setName(names.get(0).getContent().toText());
             }
             // parse method return
-            if(!method.getReturnType().isPrimitive()&&!method.getReturnType().isEnum()){
+            if(!isPrimitive(method.getReturnType())&&!method.getReturnType().isEnum()){
                 responseReturn.setReturnItem(parseRequestParam(method.getReturnType()));
             }else if(method.getReturnType().isEnum()){
                 responseReturn.setEnumValues(method.getReturnType().getEnumConstants());
@@ -221,7 +218,7 @@ public class ClassUtils {
             }
             controllerMethod.setResponseReturn(responseReturn);
             if(controllerMethod.isIgnore()){return null;}
-            System.out.println(controllerMethod);
+//            System.out.println(controllerMethod);
             return controllerMethod;
         }
 
@@ -242,25 +239,49 @@ public class ClassUtils {
             return requestParams;
         }
 //        System.out.println(typeDeclaration.getName()+typeDeclaration.getComment().toString());
-        Arrays.stream(request.getDeclaredFields()).filter(field -> !field.isSynthetic()&&
+        Arrays.stream(request.getDeclaredFields()).filter(
+                field -> !field.isSynthetic()&&
                 (field.getModifiers() & Modifier.FINAL) == 0
                 && (field.getModifiers() & Modifier.STATIC)==0
                 && (field.getModifiers() & Modifier.NATIVE)==0
                 && (field.getModifiers() & Modifier.ABSTRACT)==0
                 && (field.getModifiers() & Modifier.INTERFACE)==0
                 && (field.getModifiers() & Modifier.TRANSIENT)==0
-        ).
-                forEach(field -> {
-//                    System.out.println(" filed = "+field.getType());
+        ).forEach(field -> {
             RequestParam requestParam = new RequestParam();
             requestParam.setType(field.getType().getTypeName());
-            if(field.getType().isPrimitive()||field.getType().getSimpleName().equals("String")){
+            if(isFieldPrimitive(field)||field.getType().getSimpleName().equals("String")){
                typeDeclaration.getFieldByName(field.getName()).ifPresent(fieldDeclaration -> {
-                    parseFiledComment(((FieldDeclaration)fieldDeclaration).getComment().orElse(null),requestParam);
-                    if(requestParam.getName()==null){
-                        requestParam.setName(field.getName());
-                        requestParam.setType(field.getType().getSimpleName());
-                    }
+//                   System.out.println("fieldDeclaration = "+fieldDeclaration);
+                   if(((FieldDeclaration)fieldDeclaration).getComment().isPresent()){
+                       Javadoc javadoc = ((FieldDeclaration)fieldDeclaration).getComment().get().parse();
+                       System.out.println(" javaDoc is "+javadoc);
+                       javadoc.getBlockTags().forEach(javadocBlockTag -> {
+                           // if contains `@ignore`
+                           if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
+                               requestParam.setNecessary(false);
+                               requestParam.setDescription(javadocBlockTag.getContent().toText());
+                           }
+                           // if contains `@name`
+                           if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
+                               requestParam.setName(javadocBlockTag.getContent().toText());
+                               requestParam.setDescription(javadocBlockTag.getContent().toText());
+                           }
+
+                           // if contains `@fuzzy`
+                           if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.FUZZY)){
+                               requestParam.setFuzzy(true);
+                               requestParam.setDescription(javadocBlockTag.getContent().toText());
+                           }
+                       });
+                       if(!javadoc.getDescription().toText().isEmpty()){
+                           requestParam.setDescription(javadoc.getDescription().toText());
+                       }
+                       requestParam.setType(field.getType().getSimpleName());
+                       if(requestParam.getName()==null){
+                           requestParam.setName(field.getName());
+                       }
+                   }
                 });
 
             }else if(field.getType().isArray()) {
@@ -287,39 +308,12 @@ public class ClassUtils {
 //            }
 
             requestParam.setName(field.getName());
+            System.out.println("requestParam is"+requestParam);
             requestParams.add(requestParam);
 
         });
 
         return requestParams;
-    }
-
-
-
-    // todo handle array
-    private static RequestParam parseFiledComment(Comment comment,RequestParam requestParam){
-        if(comment==null){return requestParam;}
-        Javadoc javadoc = comment.parse();
-//        System.out.println(" javaDoc is "+javadoc);
-        javadoc.getBlockTags().forEach(javadocBlockTag -> {
-            // if contains `@ignore`
-            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
-                requestParam.setNecessary(false);
-            }
-            // if contains `@name`
-            if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
-                requestParam.setName(javadocBlockTag.getContent().toText());
-            }
-
-            // if contains `@fuzzy`
-            if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.FUZZY)){
-                requestParam.setFuzzy(true);
-            }
-
-        });
-
-        requestParam.setDescription(javadoc.getDescription().toText());
-        return requestParam;
     }
 
 
@@ -332,7 +326,7 @@ public class ClassUtils {
      */
     public static ControllerClass parseClassComment(Comment comment, Class<?> cl){
 
-
+        System.out.println(  " cl is "+cl+" comment is " +comment );
         if(comment==null){return null;}
         final ControllerClass controllerClass = new ControllerClass();
         controllerClass.setAClass(cl);
@@ -379,6 +373,29 @@ public class ClassUtils {
     }
 
 
+    private static boolean isFieldPrimitive(Field field){
+        return isPrimitive(field.getType());
+    }
+
+    private static boolean isParameterPrimitive(Parameter parameter){
+        return isPrimitive(parameter.getType());
+    }
+
+
+    private static boolean isPrimitive(Class<?> cl){
+        if(cl.isPrimitive()){
+            return true;
+        }
+        try {
+//            System.out.println(cl.getField("TYPE"));
+            return  ((Class)(cl.getField("TYPE").get(null))).isPrimitive();
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+//            System.out.println(e);
+        }
+        return false;
+
+    }
+
 
 
 
@@ -388,18 +405,7 @@ public class ClassUtils {
      */
     public static void main(String[] args) throws  ParserException {
 
-        String testPath = "/Volumes/doc/projects/java/java-api-doc/src/main/java/com/hsjfans/github";
-        String realPath = "/Volumes/doc/projects/java/java-api-doc/spring-api-demo";
-        Config config = new Config();
-        config.setPackageName(realPath);
-        config.setDocName("xxx接口文档");
-        config.setGradle(true);
-        config.setGradlePath("");
-        Parser parser = new SpringParser(config);
-        ApiTree apiTree = parser.parse(config.getPackageName(),true);
-//        System.out.println(apiTree);
-        Generator generator = new HtmlGenerator();
-        generator.from(apiTree,config);
+       System.out.println(isPrimitive(Integer.class));
 
     }
 
