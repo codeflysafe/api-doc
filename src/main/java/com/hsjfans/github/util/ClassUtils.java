@@ -145,16 +145,14 @@ public class ClassUtils {
             controllerMethod.setName(method.getName());
         }
 
-
         final List<RequestParam> requestParams = Lists.newArrayListWithCapacity(methodDeclaration.getParameters().size());
         final ResponseReturn responseReturn = new ResponseReturn();
-
         // start handle comment
         Javadoc javadoc ;
         if(methodDeclaration.getJavadoc().isPresent()){
             javadoc = methodDeclaration.getJavadoc().get();
+            System.out.println(javadoc);
             controllerMethod.setDescription(javadoc.getDescription().toText());
-
             for (int i = 0; i < methodDeclaration.getParameters().size(); i++) {
                 com.github.javaparser.ast.body.Parameter parameter = methodDeclaration.getParameter(i);
                 Parameter nativeParameter = method.getParameters()[i];
@@ -185,8 +183,7 @@ public class ClassUtils {
                 }
 
             }
-
-            List<JavadocBlockTag> javadocBlockTags = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getName().isPresent()&&javadocBlockTag.getType().equals(JavadocBlockTag.Type.RETURN))
+            List<JavadocBlockTag> javadocBlockTags = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getType().equals(JavadocBlockTag.Type.RETURN))
                     .collect(Collectors.toList());
             if(javadocBlockTags.size()>0){
                 JavadocBlockTag javadocBlockTag = javadocBlockTags.get(0);
@@ -196,13 +193,20 @@ public class ClassUtils {
 
                 // 返回值只解析 description
             }
-
-            List<JavadocBlockTag> authors = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getName().isPresent()&&javadocBlockTag.getType().equals(JavadocBlockTag.Type.AUTHOR))
+            List<JavadocBlockTag> authors = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getType().equals(JavadocBlockTag.Type.AUTHOR))
                     .collect(Collectors.toList());
+            System.out.println(authors);
             if(authors.size()>0){
-                controllerMethod.setAuthor(authors.get(0).getName().get());
+                controllerMethod.setAuthor(authors.get(0).getContent().toText());
             }
             responseReturn.setType(method.getReturnType().getSimpleName());
+            // name
+            List<JavadocBlockTag> names = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME))
+                    .collect(Collectors.toList());
+            System.out.println(names);
+            if(names.size()>0){
+                controllerMethod.setName(names.get(0).getContent().toText());
+            }
             // parse method return
             if(!method.getReturnType().isPrimitive()&&!method.getReturnType().isEnum()){
                 responseReturn.setReturnItem(parseRequestParam(method.getReturnType()));
@@ -217,6 +221,7 @@ public class ClassUtils {
             }
             controllerMethod.setResponseReturn(responseReturn);
             if(controllerMethod.isIgnore()){return null;}
+            System.out.println(controllerMethod);
             return controllerMethod;
         }
 

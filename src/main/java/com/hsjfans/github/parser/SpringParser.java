@@ -2,10 +2,8 @@ package com.hsjfans.github.parser;
 
 
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.google.common.collect.Lists;
@@ -116,17 +114,12 @@ public class SpringParser extends AbstractParser{
                        Arrays.stream(method.getAnnotations()).anyMatch(annotation ->
                                SpringUtil.map.containsKey(annotation.annotationType().getSimpleName())))
                .forEach(method -> {
-//                     LogUtil.info(" method signature  is %s",methodSignature(method));
-                   LogUtil.info(" methodDeclarations  are %s",typeDeclaration.getMethods().get(0).getSignature().asString());
-//                   LogUtil.info(" methodName is %s annotations len = %s ",method.getName(),method.getAnnotations()[0].annotationType().getSimpleName());
                     List<MethodDeclaration> methodDeclarations = typeDeclaration.getMethodsBySignature(method.getName(),methodSignature(method));
-//                    typeDeclaration.getMethods().forEach(methodDeclaration -> {
-//                        System.out.println(methodDeclaration.getSignature().asString());
-//                    });
                    LogUtil.info( " methodDeclarations is %s and method is %s ",methodDeclarations.toString(),method.getName());
                    if(methodDeclarations.size()>0){
                        ControllerMethod controllerMethod = null;
                        try {
+//                           System.out.println(methodDeclarations.get(0));
                            controllerMethod = ClassUtils.parseMethodComment(methodDeclarations.get(0),method);
                            if(controllerMethod!=null){
                                controllerMethod.setAClass(cl);

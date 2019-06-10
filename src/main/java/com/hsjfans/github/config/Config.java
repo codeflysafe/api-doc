@@ -41,5 +41,13 @@ public class Config {
     private String docName;
 
 
+    private String apiName;
+
+
+    public String getOutPath(){
+        return this.outPath+this.apiName+"/";
+    }
+
+
 
 }

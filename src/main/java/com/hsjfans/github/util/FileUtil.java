@@ -38,6 +38,10 @@ public class FileUtil {
 
         FileWriter fileWritter = null;
         try {
+            File file = new File(path);
+            if(file.isDirectory()){
+                file.mkdirs();
+            }
             fileWritter = new FileWriter(path,false);
             fileWritter.write(content);
             fileWritter.flush();

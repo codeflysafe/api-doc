@@ -105,6 +105,9 @@ public class HtmlGenerator extends AbstractGenerator {
         controller =  controller.replace("${author}",controllerClass.getAuthor());
         controller =  controller.replace("${baseUrl}", StringUtil.join(controllerClass.getUrl(),","));
         controllerClass.getControllerMethod().forEach(controllerMethod -> {
+
+//            System.out.println( controllerMethod );
+
             controllerHtml.append(String.format("\n <li style=\"padding:5px\"> <a href=\"%s\" >%s</a> <span> %s </span> </li>"
                     ,"./"+controllerClass.getName()+"_"+controllerMethod.getName()+".html",controllerMethod.getName(),controllerMethod.getName()));
             buildApiDoc(controllerClass,controllerMethod);
