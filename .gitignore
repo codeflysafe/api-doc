@@ -4,3 +4,5 @@
 gradle/
 out/
 src/static/api/
+build/
+spring-api-demo/build/

@@ -40,5 +40,14 @@ public interface Parser {
    ApiTree parse(List<String> projectPaths,boolean recursive) throws ParserException;
 
 
+//   /**
+//    *
+//    * @param file  xxx.java
+//    * @return apiTree
+//    * @throws ParserException
+//    */
+//   ApiTree parse(String file) throws ParserException;
+
+
 
 }
