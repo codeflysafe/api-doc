@@ -3,7 +3,6 @@ package com.hsjfans.github.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import sun.reflect.generics.tree.ReturnType;
 
 import java.util.List;
 
@@ -45,11 +44,6 @@ public class ResponseReturn {
      */
     private Object[] enumValues;
 
-
-    /**
-     *  the return of method
-     */
-    private ReturnType returnType;
 
 
 

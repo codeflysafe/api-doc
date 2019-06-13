@@ -54,7 +54,7 @@ public class ApiClassLoader extends ClassLoader {
             byte[] data = loadByte(name);
             return defineClass(name, data, 0, data.length);
         } catch (Exception e) {
-            e.printStackTrace();
+            LogUtil.error(" e ={} ",e);
             throw new ClassNotFoundException();
         }
     }

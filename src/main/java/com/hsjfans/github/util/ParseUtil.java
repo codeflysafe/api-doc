@@ -1,5 +1,7 @@
 package com.hsjfans.github.util;
 
+import com.github.javaparser.ast.body.MethodDeclaration;
+
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -13,16 +15,18 @@ public class ParseUtil {
     private static Pattern BLOCK_PATTERN = Pattern.compile("^\\s*" + BLOCK_TAG_PREFIX, Pattern.MULTILINE);
 
 
-    public static void main(String[] args) {
+    public static int getParameterIndexViaJavaDocTagName(String tagName, MethodDeclaration methodDeclaration){
 
-        String tagBlock = "// A simple line of text";
-        List<String>  blockLines = BLOCK_PATTERN
-                .splitAsStream(tagBlock)
-                .filter(s1 -> !s1.isEmpty())
-                .map(s -> BLOCK_TAG_PREFIX + s)
-                .collect(Collectors.toList());
+        for (int i = 0; i < methodDeclaration.getParameters().size(); i++) {
+            if(methodDeclaration.getParameter(i).getName().equals(tagName)) {
+                return i;
+            }
+        }
 
-        System.out.println(blockLines);
+       return -1;
+
     }
+
+
 
 }

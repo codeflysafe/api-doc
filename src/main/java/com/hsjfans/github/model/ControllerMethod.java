@@ -22,12 +22,12 @@ public class ControllerMethod implements Serializable {
      *
      *  the method url
      */
-    private String[] url =new String[]{""};
+    private String[] url ={" "};
 
     /**
      *  the method name `@name`
      **/
-    private String name;
+    private String name = "";
 
 
     /**

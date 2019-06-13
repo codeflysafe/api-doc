@@ -1,20 +1,14 @@
 package com.hsjfans.github.util;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.hsjfans.github.model.RequestMapping;
 import com.hsjfans.github.model.RequestMethod;
-import org.springframework.web.bind.annotation.*;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
@@ -74,7 +68,9 @@ public class SpringUtil {
 
                 Method valueMethod = annotation.getClass().getMethod("value");
                 String[] values = (String[]) valueMethod.invoke(annotation);
-                requestMapping.setValue(values);
+                if(values!=null){
+                    requestMapping.setValue(values);
+                }
                 Method pathMethod = annotation.getClass().getMethod("path");
                 String[] paths = (String[]) pathMethod.invoke(annotation);
                 if(paths.length>0){
@@ -88,6 +84,7 @@ public class SpringUtil {
             // nothing to do
         }
 
+        System.out.println(requestMapping);
 
         return requestMapping;
 
@@ -95,13 +92,18 @@ public class SpringUtil {
 
 
     public static boolean isSpringRequestAnnotation(Annotation annotation){
-        String name = annotation.annotationType().getSimpleName();
-        return name.equals(REQUEST_MAPPING)||SUPPORT_REQUEST_MAPPING.contains(name);
+        String name = annotation.annotationType().getSimpleName().trim();
+//        System.out.println(name+"  "+SUPPORT_REQUEST_MAPPING);
+//        return name.equals(REQUEST_MAPPING)||SUPPORT_REQUEST_MAPPING.contains(name);
+        return name.equals("GetMapping");
     }
 
 
     public static boolean isSpringMethods(Method method){
-        return Arrays.stream(method.getAnnotations()).anyMatch(SpringUtil::isSpringRequestAnnotation);
+        System.out.println(" method is"+method.getName());
+        boolean s = Arrays.stream(method.getAnnotations()).anyMatch(SpringUtil::isSpringRequestAnnotation);
+        System.out.println(s);
+        return s;
     }
 
 

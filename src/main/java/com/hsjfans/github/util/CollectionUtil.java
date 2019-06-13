@@ -3,10 +3,8 @@ package com.hsjfans.github.util;
 import com.github.javaparser.javadoc.JavadocBlockTag;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.springframework.web.bind.annotation.RequestMethod;
-
+import com.hsjfans.github.model.RequestMethod;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Parameter;
 import java.util.*;
 
 /**

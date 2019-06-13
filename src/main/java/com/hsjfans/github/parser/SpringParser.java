@@ -11,19 +11,14 @@ import com.github.javaparser.javadoc.JavadocBlockTag;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.hsjfans.github.config.Config;
-import com.hsjfans.github.model.ControllerClass;
-import com.hsjfans.github.model.ControllerMethod;
-import com.hsjfans.github.model.RequestMapping;
-import com.hsjfans.github.util.ClassUtils;
-import com.hsjfans.github.util.JavaDocUtil;
-import com.hsjfans.github.util.LogUtil;
-import com.hsjfans.github.util.SpringUtil;
+import com.hsjfans.github.model.*;
+import com.hsjfans.github.util.*;
 
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.*;
-import java.util.stream.Collectors;
+
 
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
@@ -48,6 +43,7 @@ public class SpringParser extends AbstractParser{
     protected void parseControllerClassDoc(Class<?> cl,final ControllerClass controllerClass) {
 
         TypeDeclaration<?> typeDeclaration = ClassCache.getTypeDeclaration(cl.getName());
+        // 先解析 doc 文件
         typeDeclaration.getJavadoc().ifPresent(javadoc -> {
             javadoc.getBlockTags().forEach(javadocBlockTag ->
             {
@@ -63,6 +59,7 @@ public class SpringParser extends AbstractParser{
             controllerClass.setDescription(javadoc.getDescription().toText());
         });
 
+        // 后填充 requestMapping 的一些属性
         Arrays.stream(cl.getAnnotations()).filter(SpringUtil::isSpringRequestAnnotation).forEach(annotation -> {
             controllerClass.fulfillRequestMapping(SpringUtil.parseRequestMapping(annotation));
         });
@@ -71,11 +68,98 @@ public class SpringParser extends AbstractParser{
     @Override
     protected  ControllerMethod parseControllerMethod(MethodDeclaration methodDeclaration, Method method){
         ControllerMethod controllerMethod = new ControllerMethod();
+
+        // 首先填充 requestMapping 属性
         Arrays.stream(method.getAnnotations()).filter(SpringUtil::isSpringRequestAnnotation).forEach(annotation->
                 controllerMethod.fulfillReqestMapping(SpringUtil.parseRequestMapping(annotation)));
 
+
+        // 解析 doc 内容
+        methodDeclaration.getJavadoc().ifPresent(javadoc ->{
+            if(javadoc.getBlockTags().stream().anyMatch(javadocBlockTag->javadocBlockTag.is(JavadocBlockTag.Type.IGNORE))){
+                controllerMethod.setIgnore(true);
+            }
+        });
+
+        if(controllerMethod.isIgnore()){return null;}
+
+        List<RequestParameter> requestParameters = Lists.newArrayListWithCapacity(method.getParameterCount());
+
+        // 开始解析 parameter 参数
+        methodDeclaration.getJavadoc().ifPresent(javadoc -> {
+            javadoc.getBlockTags().stream().filter(javadocBlockTag ->
+                    javadocBlockTag.getName().isPresent()&&javadocBlockTag.is(JavadocBlockTag.Type.PARAM)&&!javadocBlockTag.isInlineIgnore())
+                    .forEach(javadocBlockTag -> {
+                        int idx = ParseUtil.getParameterIndexViaJavaDocTagName(javadocBlockTag.getName().get(),methodDeclaration);
+                        if(idx<0){
+                            return;
+                        }
+                        Parameter parameter = method.getParameters()[idx];
+                        RequestParameter requestParam = new RequestParameter();
+                        requestParam.setFuzzy(javadocBlockTag.isInlineFuzzy());
+                        requestParam.setNullable(javadocBlockTag.isInlineNullable());
+                        requestParam.setName(javadocBlockTag.getName().get());
+                        requestParam.setDescription(javadocBlockTag.getContent().toText());
+                        requestParam.setTypeName(parameter.getType().getSimpleName());
+                        requestParam.setFields(parseParameterClassField(parameter));
+                        // 如果是基本类型，这里直接进行解析
+                        if(ClassUtils.isParameterPrimitive(parameter)||parameter.getType().equals(String.class)|ClassUtils.isTime(parameter.getType())){
+                            // nothing to do
+                        }
+                        else {
+                            requestParam.setFields(parseParameterClassField(parameter));
+                            if(parameter.getType().isEnum()){
+                                requestParam.setEnumValues(requestParam.getFields().get(0).getEnumValues());
+                            }
+                        }
+                        requestParameters.add(requestParam);
+                    });
+        });
+
+        controllerMethod.setRequestParameters(requestParameters);
+
+        // 最后填充 return 参数
+        ResponseReturn responseReturn = new ResponseReturn();
+
+        methodDeclaration.getJavadoc().ifPresent(javadoc -> {javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.is(JavadocBlockTag.Type.RETURN))
+                .forEach(javadocBlockTag -> {responseReturn.setDescription(javadocBlockTag.getContent().toText());});
+        });
+
+        // 如果是基本类型，这里直接进行解析
+        if(ClassUtils.isPrimitive(method.getReturnType())||method.getReturnType().equals(String.class)|ClassUtils.isTime(method.getReturnType())){
+            // nothing to do
+        }// 如果是个枚举，伪装成 字符串 处理
+        else {
+            responseReturn.setReturnItem(parseReturnClassField(method.getReturnType()));
+            if(method.getReturnType().isEnum()){
+                responseReturn.setEnumValues(responseReturn.getReturnItem().get(0).getEnumValues());
+            }
+        }
+
+        controllerMethod.setResponseReturn(responseReturn);
+
+
         return controllerMethod;
     }
+
+
+    protected List<ClassField> parseParameterClassField(Parameter parameter){
+        return parserClassFields(parameter.getParameterizedType(),parameter.getType(),false);
+    }
+
+
+
+    protected List<ClassField> parseReturnClassField(Class<?> cl){
+
+        System.out.println("cl is "+cl);
+
+
+
+
+        return parserClassFields(cl.getGenericSuperclass(),cl,true);
+    }
+
+
 
 
     /**
@@ -112,78 +196,6 @@ public class SpringParser extends AbstractParser{
 
     }
 
-    @Override
-    protected void  parseCompilationUnit(CompilationUnit compilationUnit,final Set<ControllerClass> controllerClasses) {
-        compilationUnit.getPrimaryType().ifPresent(typeDeclaration ->
-        {
-            LogUtil.info(" start parse typeDeclaration %s ",typeDeclaration.getName());
-            ControllerClass controllerClass ;
-            List<AnnotationExpr> annotationExprs =  typeDeclaration.getAnnotations().stream().filter(annotationExpr -> annotationExpr.getNameAsString().equals("Controller") ||
-                    annotationExpr.getNameAsString().equals("RestController")).collect(Collectors.toList());
-           if(annotationExprs.size()>0){
-               Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
-               if(!packageDeclaration.isPresent()){
-                   return;
-               }
-               String packageName = packageDeclaration.get().getNameAsString();
-               String className = packageName+"."+typeDeclaration.getName();
-               Class<?> cl ;
-               try {
-                   LogUtil.info("开始加载 controller 类  name %s  ",className);
-                   cl = classLoader.loadClass(className);
-               }catch (Exception e){
-                   LogUtil.warn(" controller 类 className = %s 加载失败 err = %s ",className,e.getMessage());
-                   return;
-               }
-
-               controllerClass =  ClassUtils.parseClassComment(typeDeclaration.getComment().orElse(null),cl);
-               if(controllerClass==null||controllerClass.isIgnore()){return;}
-
-               LogUtil.info(" className = %s 加载完毕 %s",className,controllerClass);
-               final List<ControllerMethod> controllerMethods = Lists.newArrayListWithCapacity(cl.getMethods().length);
-
-               // just public method
-               // PostMapping GetMapping ...
-               Arrays.stream(cl.getMethods())
-                       .filter(method ->
-                       Arrays.stream(method.getAnnotations()).anyMatch(annotation ->
-                               SpringUtil.map.containsKey(annotation.annotationType().getSimpleName())))
-               .forEach(method -> {
-                   List<MethodDeclaration> methodDeclarations = typeDeclaration.getMethodsBySignature(method.getName(),methodSignature(method));
-                   LogUtil.info( " methodDeclarations is %s and method is %s ",methodDeclarations.toString(),method.getName());
-                   if(methodDeclarations.size()>0){
-                       ControllerMethod controllerMethod = null;
-                       try {
-//                           System.out.println(methodDeclarations.get(0));
-                           controllerMethod = ClassUtils.parseMethodComment(methodDeclarations.get(0),method);
-                           if(controllerMethod!=null){
-                               controllerMethod.setAClass(cl);
-                               controllerMethod.setMethod(method);
-                               controllerMethods.add(controllerMethod);
-                               LogUtil.info( " methodDeclarations %s 解析完毕",methodDeclarations.toString());
-                           }
-                       } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-                           LogUtil.error(" err = %s ",e.getMessage());
-                       }
-                   }
-               });
-
-               controllerClass.setControllerMethod(controllerMethods);
-               LogUtil.info("controllerClass is %s ",controllerClass.toString());
-               controllerClasses.add(controllerClass);
-           }
-        });
-
-
-    }
-
-    private static String[] methodSignature(Method method){
-        String[] strings = new String[method.getParameters().length];
-        for (int i = 0; i < method.getParameters().length; i++) {
-            strings[i] = method.getParameters()[i].getType().getSimpleName();
-        }
-        return strings;
-    }
 
 
 }

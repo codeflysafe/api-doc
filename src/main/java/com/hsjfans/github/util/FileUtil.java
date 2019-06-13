@@ -52,5 +52,10 @@ public class FileUtil {
 
     }
 
+
+    public static boolean filterTest(String suffix,File file){
+        return file.getPath().startsWith(suffix+"/src/test/");
+    }
+
 }
 

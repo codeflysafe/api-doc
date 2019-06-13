@@ -58,6 +58,17 @@ public class ClassField implements Serializable {
     private boolean nullable = false;
 
 
+    /**
+     *  is list or not
+     */
+    private boolean array = false;
+
+
+    /**
+     *  is enumType or not
+     */
+    private boolean enumType = false;
+
 
     /**
      *  the description
