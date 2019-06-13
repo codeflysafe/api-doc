@@ -61,13 +61,13 @@ public class ControllerMethod implements Serializable {
     /**
      *  author
      */
-    private String author;
+    private String author= "";
 
 
     /**
      *  the description of this method
      */
-    private String description;
+    private String description = "";
 
 
 

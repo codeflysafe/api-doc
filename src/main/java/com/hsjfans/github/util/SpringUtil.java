@@ -28,7 +28,7 @@ public class SpringUtil {
      *  * @see RequestMapping
      */
     private static final List<String> SUPPORT_REQUEST_MAPPING = Lists.newArrayList(
-            "PostMapping,GetMapping,DeleteMapping,PatchMapping,PutMapping"
+            "PostMapping","GetMapping","DeleteMapping","PatchMapping","PutMapping"
     );
 
 
@@ -52,7 +52,7 @@ public class SpringUtil {
         RequestMapping requestMapping = new RequestMapping();
         String name = annotation.annotationType().getSimpleName();
         try {
-            if(name.equals(REQUEST_MAPPING)){
+            if(REQUEST_MAPPING.equals(name)){
                 Method method = annotation.getClass().getMethod("method");
                 Object requestMethods = method.invoke(annotation);
                 if(requestMethods.getClass().isArray()){
@@ -62,6 +62,8 @@ public class SpringUtil {
                     }
                     requestMapping.setMethods(ms);
                 }
+            }else if(SUPPORT_REQUEST_MAPPING.contains(name)){
+                requestMapping.setMethods(new RequestMethod[]{RequestMethod.valueOf(name.replaceAll("Mapping","").toUpperCase())});
             }
 
             if(SUPPORT_REQUEST_MAPPING.contains(name)||name.equals(REQUEST_MAPPING)){
@@ -82,9 +84,8 @@ public class SpringUtil {
 
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             // nothing to do
+            LogUtil.error(" e= {}",e);
         }
-
-        System.out.println(requestMapping);
 
         return requestMapping;
 
@@ -94,16 +95,13 @@ public class SpringUtil {
     public static boolean isSpringRequestAnnotation(Annotation annotation){
         String name = annotation.annotationType().getSimpleName().trim();
 //        System.out.println(name+"  "+SUPPORT_REQUEST_MAPPING);
-//        return name.equals(REQUEST_MAPPING)||SUPPORT_REQUEST_MAPPING.contains(name);
-        return name.equals("GetMapping");
+        return name.equals(REQUEST_MAPPING)||SUPPORT_REQUEST_MAPPING.contains(name);
+//        return name.equals("GetMapping");
     }
 
 
     public static boolean isSpringMethods(Method method){
-        System.out.println(" method is"+method.getName());
-        boolean s = Arrays.stream(method.getAnnotations()).anyMatch(SpringUtil::isSpringRequestAnnotation);
-        System.out.println(s);
-        return s;
+        return Arrays.stream(method.getAnnotations()).anyMatch(SpringUtil::isSpringRequestAnnotation);
     }
 
 

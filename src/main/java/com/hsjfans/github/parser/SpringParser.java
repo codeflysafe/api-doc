@@ -17,6 +17,7 @@ import com.hsjfans.github.util.*;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
 import java.util.*;
 
 
@@ -61,6 +62,7 @@ public class SpringParser extends AbstractParser{
 
         // 后填充 requestMapping 的一些属性
         Arrays.stream(cl.getAnnotations()).filter(SpringUtil::isSpringRequestAnnotation).forEach(annotation -> {
+
             controllerClass.fulfillRequestMapping(SpringUtil.parseRequestMapping(annotation));
         });
     }
@@ -68,6 +70,9 @@ public class SpringParser extends AbstractParser{
     @Override
     protected  ControllerMethod parseControllerMethod(MethodDeclaration methodDeclaration, Method method){
         ControllerMethod controllerMethod = new ControllerMethod();
+
+        controllerMethod.setName(method.getName());
+        controllerMethod.setMethod(method);
 
         // 首先填充 requestMapping 属性
         Arrays.stream(method.getAnnotations()).filter(SpringUtil::isSpringRequestAnnotation).forEach(annotation->
@@ -79,7 +84,16 @@ public class SpringParser extends AbstractParser{
             if(javadoc.getBlockTags().stream().anyMatch(javadocBlockTag->javadocBlockTag.is(JavadocBlockTag.Type.IGNORE))){
                 controllerMethod.setIgnore(true);
             }
+            javadoc.getBlockTags().stream().filter(javadocBlockTag->javadocBlockTag.is(JavadocBlockTag.Type.AUTHOR)).forEach(javadocBlockTag -> {
+                controllerMethod.setAuthor(javadocBlockTag.getContent().toText());
+            });
+            javadoc.getBlockTags().stream().filter(javadocBlockTag->javadocBlockTag.is(JavadocBlockTag.Type.NAME)).forEach(javadocBlockTag -> {
+                controllerMethod.setName(javadocBlockTag.getContent().toText());
+            });
+            controllerMethod.setDescription(javadoc.getDescription().toText());
+
         });
+
 
         if(controllerMethod.isIgnore()){return null;}
 
@@ -90,23 +104,25 @@ public class SpringParser extends AbstractParser{
             javadoc.getBlockTags().stream().filter(javadocBlockTag ->
                     javadocBlockTag.getName().isPresent()&&javadocBlockTag.is(JavadocBlockTag.Type.PARAM)&&!javadocBlockTag.isInlineIgnore())
                     .forEach(javadocBlockTag -> {
+
                         int idx = ParseUtil.getParameterIndexViaJavaDocTagName(javadocBlockTag.getName().get(),methodDeclaration);
                         if(idx<0){
                             return;
                         }
                         Parameter parameter = method.getParameters()[idx];
+
                         RequestParameter requestParam = new RequestParameter();
                         requestParam.setFuzzy(javadocBlockTag.isInlineFuzzy());
                         requestParam.setNullable(javadocBlockTag.isInlineNullable());
                         requestParam.setName(javadocBlockTag.getName().get());
                         requestParam.setDescription(javadocBlockTag.getContent().toText());
                         requestParam.setTypeName(parameter.getType().getSimpleName());
-                        requestParam.setFields(parseParameterClassField(parameter));
                         // 如果是基本类型，这里直接进行解析
-                        if(ClassUtils.isParameterPrimitive(parameter)||parameter.getType().equals(String.class)|ClassUtils.isTime(parameter.getType())){
+                        if(ClassUtils.isParameterPrimitive(parameter)||parameter.getType().equals(String.class)||ClassUtils.isTime(parameter.getType())){
                             // nothing to do
-                        }
-                        else {
+
+                        } else {
+                            LogUtil.info(" 解析 parseParameterClassField  "+parameter.getType());
                             requestParam.setFields(parseParameterClassField(parameter));
                             if(parameter.getType().isEnum()){
                                 requestParam.setEnumValues(requestParam.getFields().get(0).getEnumValues());
@@ -130,14 +146,13 @@ public class SpringParser extends AbstractParser{
             // nothing to do
         }// 如果是个枚举，伪装成 字符串 处理
         else {
-            responseReturn.setReturnItem(parseReturnClassField(method.getReturnType()));
+            responseReturn.setReturnItem(parseReturnClassField(method));
             if(method.getReturnType().isEnum()){
                 responseReturn.setEnumValues(responseReturn.getReturnItem().get(0).getEnumValues());
             }
         }
 
         controllerMethod.setResponseReturn(responseReturn);
-
 
         return controllerMethod;
     }
@@ -149,14 +164,8 @@ public class SpringParser extends AbstractParser{
 
 
 
-    protected List<ClassField> parseReturnClassField(Class<?> cl){
-
-        System.out.println("cl is "+cl);
-
-
-
-
-        return parserClassFields(cl.getGenericSuperclass(),cl,true);
+    protected List<ClassField> parseReturnClassField(Method method){
+        return parserClassFields(method.getGenericReturnType(),method.getReturnType(),true);
     }
 
 

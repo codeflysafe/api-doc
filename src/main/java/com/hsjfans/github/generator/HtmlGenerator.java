@@ -102,7 +102,7 @@ public class HtmlGenerator extends AbstractGenerator {
     @Override
     protected void buildControllerDoc(ControllerClass controllerClass) {
 
-        System.out.println(controllerClass);
+
         StringBuilder controllerHtml = new StringBuilder();
         String controller = FileUtil.from(BASE_TPL_PATH+controllerTpl);
         controller =  controller.replace("${controller-name}",controllerClass.getName());
@@ -134,7 +134,6 @@ public class HtmlGenerator extends AbstractGenerator {
     @Override
     protected void buildApiDoc(ControllerClass controllerClass, ControllerMethod controllerMethod) {
 
-        System.out.println(controllerClass);
 
         String method = FileUtil.from(BASE_TPL_PATH+urlTpl);
         method = method.replace("${title}",controllerMethod.getName());
@@ -174,12 +173,12 @@ public class HtmlGenerator extends AbstractGenerator {
     private String generateRequestParams(List<RequestParameter> requestParams){
         StringBuilder params = new StringBuilder();
         requestParams.forEach(requestParam->{
-            System.out.println(" requestParam= "+requestParam);
-            if(requestParam.getFields()==null||requestParam.getFields()!=null&&requestParam.getEnumValues()!=null){
+
+            if(requestParam.getFields()==null||requestParam.getEnumValues()!=null){
                 params.append(String.format(Request_Params_Table_No_head,requestParam.getName(),requestParam.getTypeName(),
                         StringUtil.enumToStrs(requestParam.getEnumValues()),!requestParam.isNullable(),requestParam.isFuzzy(),
                         requestParam.getDescription()));
-            }else {
+            }else if(requestParam.getFields().size()>0){
                 params.append(String.format(Request_Params_Table_No_head,
                         requestParam.getName(),
                         Request_Params_Table_head.replace("${requestParams}",generateClassFields(requestParam.getFields(),false)),
@@ -231,7 +230,7 @@ public class HtmlGenerator extends AbstractGenerator {
 
         StringBuilder params = new StringBuilder();
         classFields.forEach(classField->{
-            if(classField.getFields()==null||classField.getFields()!=null&&classField.getEnumValues()!=null){
+            if(classField.getFields()==null||classField.getEnumValues()!=null){
                 if(response){
                     params.append(String.format(Response_Return_Table_No_Head,
                             classField.getName(),
@@ -247,7 +246,7 @@ public class HtmlGenerator extends AbstractGenerator {
                             classField.getDescription()));
                 }
 
-            }else {
+            }else if(classField.getFields().size()>0) {
                 if(response){
                     params.append(String.format(Response_Return_Table_No_Head,
                             classField.getName(),

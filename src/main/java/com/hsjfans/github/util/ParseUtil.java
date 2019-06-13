@@ -18,7 +18,7 @@ public class ParseUtil {
     public static int getParameterIndexViaJavaDocTagName(String tagName, MethodDeclaration methodDeclaration){
 
         for (int i = 0; i < methodDeclaration.getParameters().size(); i++) {
-            if(methodDeclaration.getParameter(i).getName().equals(tagName)) {
+            if(methodDeclaration.getParameter(i).getNameAsString().equals(tagName)) {
                 return i;
             }
         }

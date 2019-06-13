@@ -79,9 +79,7 @@ public abstract class AbstractParser implements Parser  {
         List<ControllerMethod> controllerMethods = Lists.newArrayListWithCapacity(methods.length);
         // just public method
         // and has PostMapping GetMapping ...
-        System.out.println( " method is"+methods.length);
         Arrays.stream(methods).filter(SpringUtil::isSpringMethods).forEach(method -> {
-            System.out.println( " method is"+method);
             List<MethodDeclaration> methodDeclarations = typeDeclaration.getMethodsBySignature(method.getName(),ClassUtils.methodSignature(method));
             if(methodDeclarations.size()>0){
                 Optional.ofNullable(parseControllerMethod(methodDeclarations.get(0),method)).ifPresent(controllerMethods::add);
@@ -132,7 +130,7 @@ public abstract class AbstractParser implements Parser  {
 
     @Override
     public ApiTree parse(String projectPath, boolean recursive) throws ParserException {
-        LogUtil.info("开始解析 projectPath# "+projectPath);
+        LogUtil.info("开始解析 projectPath = %s ",projectPath);
         Set<File> javaFiles =  ClassUtils.scan(projectPath,true);
         Set<ControllerClass> controllerClasses = Sets.newHashSet();
         getAllControllerClass(javaFiles).forEach(cl-> controllerClasses.add(this.parseControllerClass(cl)));
@@ -173,8 +171,7 @@ public abstract class AbstractParser implements Parser  {
             classField.setEnumType(true);
             classFields.add(classField);
             return classFields;
-        }
-        if(request.isArray()){
+        } else if(request.isArray()){
             ClassField classField = new ClassField();
             classField.setType(request.getTypeName());
             classField.setName(request.getSimpleName());
@@ -183,11 +180,8 @@ public abstract class AbstractParser implements Parser  {
             classFields.add(classField);
             return classFields;
         }else{
-            Class<?> c;
-
-            System.out.println(" type is ");
             // 如果是标准库的集合类型
-            c = ClassUtils.isCollection(type);
+            Class<?>  c = ClassUtils.isCollection(type);
             if(c!=null){
                 ClassField classField = new ClassField();
                 classField.setType(request.getTypeName());
@@ -197,7 +191,7 @@ public abstract class AbstractParser implements Parser  {
                 classFields.add(classField);
                 return classFields;
             }
-            // 其它暂不支持
+
         }
 
         TypeDeclaration typeDeclaration = ClassCache.getTypeDeclaration(request.getName());
@@ -219,11 +213,12 @@ public abstract class AbstractParser implements Parser  {
             // 类型信息，这里填充
             ClassField classField = new ClassField();
             classField.setType(field.getType().getTypeName());
+            classField.setName(field.getName());
             // 先填充注释信息
             typeDeclaration.getFieldByName(field.getName()).ifPresent(fieldDeclaration -> {
                 if(((FieldDeclaration)fieldDeclaration).getComment().isPresent()){
                     Javadoc javadoc = ((FieldDeclaration)fieldDeclaration).getComment().get().parse();
-                    System.out.println(" javadoc is =========> "+javadoc);
+
                     Optional<JavadocBlockTag> ignoreOpt = CollectionUtil.contains(javadoc.getBlockTags(),JavadocBlockTag.Type.IGNORE);
                     ignoreOpt.ifPresent(javadocBlockTag -> {
                         classField.setIgnore(true);
@@ -260,6 +255,8 @@ public abstract class AbstractParser implements Parser  {
             // 如果是基本类型，这里直接进行解析
             if(ClassUtils.isFieldPrimitive(field)||field.getType().equals(String.class)|ClassUtils.isTime(field.getType())){
                 // nothing to do
+                classFields.add(classField);
+                return;
             }
             else {
                 classField.setFields(parserClassFields(field.getGenericType(),field.getType(),response));
@@ -268,7 +265,6 @@ public abstract class AbstractParser implements Parser  {
                     classField.setEnumValues(classField.getFields().get(0).getEnumValues());
                 }
             }
-            if(classField.getName()==null){classField.setName(field.getName());}
             classFields.add(classField);
 
         });

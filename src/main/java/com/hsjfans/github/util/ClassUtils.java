@@ -140,9 +140,6 @@ public class ClassUtils {
 
 
 
-
-
-
     public static boolean isTime(Class<?> c){
         if(c.equals(LocalDateTime.class)){
             return true;

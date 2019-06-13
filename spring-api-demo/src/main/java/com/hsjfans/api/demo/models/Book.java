@@ -10,7 +10,7 @@ import java.io.Serializable;
 public class Book implements Serializable {
 
     /**
-     * @ignore 忽略
+     * @nullable 忽略
      */
     private String name;
 

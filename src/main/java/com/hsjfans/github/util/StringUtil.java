@@ -14,6 +14,7 @@ public class StringUtil {
 
     public static String join(String[] strings,String sep){
 
+        if(strings.length==0){return "";}
         StringBuilder builder = new StringBuilder(strings[0]);
         for(int i=1;i<strings.length;i++){
             builder.append(sep).append(strings[i]);
