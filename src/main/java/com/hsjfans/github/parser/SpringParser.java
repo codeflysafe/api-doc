@@ -6,22 +6,23 @@ import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.javadoc.Javadoc;
+import com.github.javaparser.javadoc.JavadocBlockTag;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.hsjfans.github.config.Config;
 import com.hsjfans.github.model.ControllerClass;
 import com.hsjfans.github.model.ControllerMethod;
+import com.hsjfans.github.model.RequestMapping;
 import com.hsjfans.github.util.ClassUtils;
+import com.hsjfans.github.util.JavaDocUtil;
 import com.hsjfans.github.util.LogUtil;
 import com.hsjfans.github.util.SpringUtil;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -44,41 +45,75 @@ public class SpringParser extends AbstractParser{
     }
 
     @Override
-    protected Set<CompilationUnit> getAllControllerClass(Set<File> javaFiles) {
+    protected void parseControllerClassDoc(Class<?> cl,final ControllerClass controllerClass) {
 
-        Set<CompilationUnit> compilationUnits = Sets.newHashSet();
-        javaFiles.forEach(file->{
-           CompilationUnit compilationUnit = ClassUtils.parseJavaFile(file);
-//           compilationUnit.getPrimaryType().filter(TypeDeclaration::isClassOrInterfaceDeclaration)
-//                  .get();
-           if (compilationUnit!=null){
-               Optional<PackageDeclaration> packageDeclaration = compilationUnit.getPackageDeclaration();
-               if(packageDeclaration.isPresent()){
-                   String packageName = packageDeclaration.get().getNameAsString();
-                   Optional<TypeDeclaration<?>> typeDeclaration = compilationUnit.getPrimaryType();
-                   if(typeDeclaration.isPresent()){
-                       String className = packageName+"."+typeDeclaration.get().getName();
-                       Class<?> cl ;
-                       try {
-                           LogUtil.info(" packageName = %s and typeDeclaration.get().getName() = %s "
-                           ,packageName,typeDeclaration.get().getName());
-//                           cl = classLoader.loadClass(className);
-                           ClassCache.putCompilationUnit(className,typeDeclaration.get());
-//                           ClassCache.putClass(className,cl);
-                           compilationUnits.add(compilationUnit);
-                       }catch (Exception e){
-                           LogUtil.warn(e.getMessage());
-                       }
-                   }
-               }
-           }
+        TypeDeclaration<?> typeDeclaration = ClassCache.getTypeDeclaration(cl.getName());
+        typeDeclaration.getJavadoc().ifPresent(javadoc -> {
+            javadoc.getBlockTags().forEach(javadocBlockTag ->
+            {
+                // if contains `@name`
+                if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
+                    controllerClass.setName(javadocBlockTag.getContent().toText());
+                }
+                // if contains `@author`
+                if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.AUTHOR)){
+                    controllerClass.setAuthor(javadocBlockTag.getContent().toText());
+                }
+            });
+            controllerClass.setDescription(javadoc.getDescription().toText());
         });
 
-        return compilationUnits;
+        Arrays.stream(cl.getAnnotations()).filter(SpringUtil::isSpringRequestAnnotation).forEach(annotation -> {
+            controllerClass.fulfillRequestMapping(SpringUtil.parseRequestMapping(annotation));
+        });
     }
 
     @Override
-    protected void   parseCompilationUnit(CompilationUnit compilationUnit,final Set<ControllerClass> controllerClasses) {
+    protected  ControllerMethod parseControllerMethod(MethodDeclaration methodDeclaration, Method method){
+        ControllerMethod controllerMethod = new ControllerMethod();
+        Arrays.stream(method.getAnnotations()).filter(SpringUtil::isSpringRequestAnnotation).forEach(annotation->
+                controllerMethod.fulfillReqestMapping(SpringUtil.parseRequestMapping(annotation)));
+
+        return controllerMethod;
+    }
+
+
+    /**
+     *  从 java 文件中过滤调
+     * @param javaFiles javaFiles
+     * @return
+     */
+    @Override
+    protected Set<Class<?>> getAllControllerClass(Set<File> javaFiles) {
+
+        Set<Class<?>> classes =  this.parseJavaFiles(javaFiles);
+        Iterator<Class<?>> iterator = classes.iterator();
+        while (iterator.hasNext()){
+            Class<?> next = iterator.next();
+            // 首先从缓存中查处对应的 typeDeclaration 没有则移除
+            TypeDeclaration<?> typeDeclaration = ClassCache.getTypeDeclaration(next.getName());
+            if(typeDeclaration==null){
+                iterator.remove();
+                continue;
+            }
+            // 然后判断这个类是不是含有 SpringMVC 的 controller or restController 注解
+            // 没有就移除掉
+            if(!SpringUtil.isControllerClass(next.getAnnotations())){
+               iterator.remove();
+               continue;
+            }
+            // 最后，判断这个类是不是 `@ignore` 注释，是的话也去除掉
+            if(JavaDocUtil.isIgnore(typeDeclaration)){
+                iterator.remove();
+            }
+        }
+
+        return classes;
+
+    }
+
+    @Override
+    protected void  parseCompilationUnit(CompilationUnit compilationUnit,final Set<ControllerClass> controllerClasses) {
         compilationUnit.getPrimaryType().ifPresent(typeDeclaration ->
         {
             LogUtil.info(" start parse typeDeclaration %s ",typeDeclaration.getName());

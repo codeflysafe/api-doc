@@ -11,16 +11,18 @@ import com.github.javaparser.javadoc.Javadoc;
 import com.github.javaparser.javadoc.JavadocBlockTag;
 import com.google.common.collect.Lists;
 import com.hsjfans.github.model.*;
-import com.hsjfans.github.model.RequestParam;
+import com.hsjfans.github.model.ClassField;
+import com.hsjfans.github.parser.AbstractParser;
 import com.hsjfans.github.parser.ClassCache;
 import com.hsjfans.github.parser.ParserException;
-import org.checkerframework.checker.units.qual.C;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -140,42 +142,38 @@ public class ClassUtils {
             controllerMethod.setName(method.getName());
         }
 
-        final List<RequestParam> requestParams = Lists.newArrayListWithCapacity(methodDeclaration.getParameters().size());
-        final ResponseReturn responseReturn = new ResponseReturn();
+        final List<ClassField> requestParams = Lists.newArrayListWithCapacity(methodDeclaration.getParameters().size());
+
         // start handle comment
         Javadoc javadoc ;
         if(methodDeclaration.getJavadoc().isPresent()){
             javadoc = methodDeclaration.getJavadoc().get();
-//            System.out.println(javadoc);
             controllerMethod.setDescription(javadoc.getDescription().toText());
             for (int i = 0; i < methodDeclaration.getParameters().size(); i++) {
                 com.github.javaparser.ast.body.Parameter parameter = methodDeclaration.getParameter(i);
                 Parameter nativeParameter = method.getParameters()[i];
+                // 查处对应的 @Param 注解
                 List<JavadocBlockTag> javadocBlockTags = javadoc.getBlockTags().stream().filter(javadocBlockTag ->
-                        javadocBlockTag.getName().isPresent()&&javadocBlockTag.getType().equals(JavadocBlockTag.Type.PARAM)
+                        javadocBlockTag.getName().isPresent()&&javadocBlockTag.is(JavadocBlockTag.Type.PARAM)&&!javadocBlockTag.isInlineIgnore()
                                 &&javadocBlockTag.getName().get().equals(parameter.getNameAsString()))
                         .collect(Collectors.toList());
-
                 if(javadocBlockTags.size()>0){
+                    // 这里只取第一个同名的 param
                     JavadocBlockTag javadocBlockTag = javadocBlockTags.get(0);
-                    System.out.println(" parameters javadocBlockTag = "+javadocBlockTag);
-                    RequestParam requestParam = new RequestParam();
+                    ClassField requestParam = new ClassField();
                     requestParam.setFuzzy(javadocBlockTag.isInlineFuzzy());
-                    requestParam.setNecessary(!javadocBlockTag.isInlineIgnore());
-                    requestParam.setName(javadocBlockTag.getName().orElse(null));
+                    requestParam.setNullable(javadocBlockTag.isInlineNullable());
+                    requestParam.setName(javadocBlockTag.getName().get());
                     requestParam.setDescription(javadocBlockTag.getContent().toText());
-                    requestParam.setType(nativeParameter.getType().getTypeName());
-
-                    // 这里只解析 @param 参数
-                    // 判断请求参数是否为结构体，如果是 则进行解析
-
-                    Class<?> c = isParameterCollection(nativeParameter);
-                    if(c!=null){
-                        System.out.println(" c  is "+c);
-                    }else if (!isParameterPrimitive(nativeParameter)&&!nativeParameter.getType().getSimpleName().equals("String")){
-                        List<RequestParam> requestParams1 = parseRequestParam(nativeParameter.getType());
+                    requestParam.setType(nativeParameter.getType().getSimpleName());
+                    // 开始解析 基本类型
+                   if(isParameterPrimitive(nativeParameter)||nativeParameter.getType().equals(String.class)||nativeParameter.getType().isEnum()||isTime(nativeParameter.getType())){
+                       // nothing to do
+                    } else {
+                        // 去解析以下，看结果再加吧
+                        List<ClassField> requestParams1 = parseRequestParam(nativeParameter.getType(),false);
 //                        System.out.println(" requestParams1 is "+requestParams1);
-                        requestParam.setParams(requestParams1);
+                        requestParam.setFields(requestParams1);
                     }
 
                     if(requestParam.getName()==null){
@@ -188,6 +186,10 @@ public class ClassUtils {
             }
             List<JavadocBlockTag> javadocBlockTags = javadoc.getBlockTags().stream().filter(javadocBlockTag -> javadocBlockTag.getType().equals(JavadocBlockTag.Type.RETURN))
                     .collect(Collectors.toList());
+
+
+            final ResponseReturn responseReturn = new ResponseReturn();
+
             if(javadocBlockTags.size()>0){
                 JavadocBlockTag javadocBlockTag = javadocBlockTags.get(0);
                 responseReturn.setDescription(javadocBlockTag.getContent().toText());
@@ -212,7 +214,7 @@ public class ClassUtils {
             }
             // parse method return
             if(!isPrimitive(method.getReturnType())&&!method.getReturnType().isEnum()&&!method.getReturnType().getSimpleName().equals("String")){
-                responseReturn.setReturnItem(parseRequestParam(method.getReturnType()));
+                responseReturn.setReturnItem(parseRequestParam(method.getReturnType(),true));
             }else if(method.getReturnType().isEnum()){
                 responseReturn.setEnumValues(method.getReturnType().getEnumConstants());
                 responseReturn.setType("String");
@@ -232,21 +234,18 @@ public class ClassUtils {
     }
 
 
-
     /**
      *
+     * 解析 field 参数
+     * 支持`request`请求以及`response`返回值
      * @param request the request param class
      */
-    private static List<RequestParam> parseRequestParam(Class<?> request){
-        List<RequestParam> requestParams = Lists.newLinkedList();
-
-
+    private static List<ClassField> parseRequestParam(Class<?> request,boolean response){
+        final List<ClassField> requestParams = Lists.newLinkedList();
         TypeDeclaration typeDeclaration = ClassCache.getCompilationUnit(request.getName());
-//
         if (typeDeclaration==null){
             return requestParams;
         }
-//        System.out.println(typeDeclaration.getName()+typeDeclaration.getComment().toString());
         Arrays.stream(request.getDeclaredFields()).filter(
                 field -> !field.isSynthetic()&&
                 (field.getModifiers() & Modifier.FINAL) == 0
@@ -256,131 +255,85 @@ public class ClassUtils {
                 && (field.getModifiers() & Modifier.INTERFACE)==0
                 && (field.getModifiers() & Modifier.TRANSIENT)==0
         ).forEach(field -> {
-            RequestParam requestParam = new RequestParam();
-            requestParam.setType(field.getType().getTypeName());
-            if(isFieldPrimitive(field)||field.getType().getSimpleName().equals("String")){
-               typeDeclaration.getFieldByName(field.getName()).ifPresent(fieldDeclaration -> {
-//                   System.out.println("fieldDeclaration = "+fieldDeclaration);
-                   if(((FieldDeclaration)fieldDeclaration).getComment().isPresent()){
-                       Javadoc javadoc = ((FieldDeclaration)fieldDeclaration).getComment().get().parse();
-                       System.out.println(" javaDoc is "+javadoc);
-                       javadoc.getBlockTags().forEach(javadocBlockTag -> {
-                           // if contains `@ignore`
-                           if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
-                               requestParam.setNecessary(false);
-                               requestParam.setDescription(javadocBlockTag.getContent().toText());
-                           }
-                           // if contains `@name`
-                           if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
-                               requestParam.setName(javadocBlockTag.getContent().toText());
-                               requestParam.setDescription(javadocBlockTag.getContent().toText());
-                           }
-
-                           // if contains `@fuzzy`
-                           if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.FUZZY)){
-                               requestParam.setFuzzy(true);
-                               requestParam.setDescription(javadocBlockTag.getContent().toText());
-                           }
-                       });
-                       if(!javadoc.getDescription().toText().isEmpty()){
-                           requestParam.setDescription(javadoc.getDescription().toText());
-                       }
-                       requestParam.setType(field.getType().getSimpleName());
-                       if(requestParam.getName()==null){
-                           requestParam.setName(field.getName());
-                       }
-                   }
-                });
-
-            }
-            else if(field.getType().isArray()) {
-                Field[] fields = field.getType().getFields();
-                requestParam.setName(field.getName());
-                requestParam.setType(field.getType().getTypeName());
-                if(fields.length>0){
-                    requestParam.setParams(parseRequestParam(fields[0].getType()));
+            final ClassField requestParam = new ClassField();
+            // 类型信息，这里填充
+            requestParam.setType(field.getType().getSimpleName());
+            // 先填充注释信息
+            typeDeclaration.getFieldByName(field.getName()).ifPresent(fieldDeclaration -> {
+                if(((FieldDeclaration)fieldDeclaration).getComment().isPresent()){
+                    Javadoc javadoc = ((FieldDeclaration)fieldDeclaration).getComment().get().parse();
+                    System.out.println(" javadoc is =========> "+javadoc);
+                    Optional<JavadocBlockTag> ignoreOpt = CollectionUtil.contains(javadoc.getBlockTags(),JavadocBlockTag.Type.IGNORE);
+                    ignoreOpt.ifPresent(javadocBlockTag -> {
+                        requestParam.setIgnore(true);
+                        requestParam.setDescription(javadocBlockTag.getContent().toText());
+                    });
+                    if(requestParam.isIgnore()){
+                        return;
+                    }
+                    // if contains `@name`
+                    CollectionUtil.contains(javadoc.getBlockTags(),JavadocBlockTag.Type.NAME).ifPresent(javadocBlockTag -> {
+                        requestParam.setName(javadocBlockTag.getContent().toText());
+                        requestParam.setDescription(javadocBlockTag.getContent().toText());
+                    });
+                    // if contains `@fuzzy`
+                    CollectionUtil.contains(javadoc.getBlockTags(),JavadocBlockTag.Type.FUZZY).ifPresent(javadocBlockTag -> {
+                        requestParam.setFuzzy(true);
+                        requestParam.setDescription(javadocBlockTag.getContent().toText());
+                    });
+                    // if contains `@nullable`
+                    CollectionUtil.contains(javadoc.getBlockTags(),JavadocBlockTag.Type.NULLABLE).ifPresent(javadocBlockTag -> {
+                        requestParam.setNullable(true);
+                        requestParam.setDescription(javadocBlockTag.getContent().toText());
+                    });
+                    if(!javadoc.getDescription().toText().isEmpty()){
+                        requestParam.setDescription(javadoc.getDescription().toText());
+                    }
                 }
+            });
+
+            // 如果 参数被忽略，跳过
+            if(requestParam.isIgnore()&&!response){
+                return;
             }
+//             如果是基本类型，这里直接进行解析
+            if(isFieldPrimitive(field)||field.getType().equals(String.class)||isTime(field.getType())){
+               // nothing to do
+            }
+            // 如果是个枚举，伪装成 字符串 处理
             else if(field.getType().isEnum()){
-//                System.out.println(" enum is"+field);
                 Object[] enumValues = new Object[field.getType().getEnumConstants().length];
                 for (int i = 0; i <field.getType().getEnumConstants().length ; i++) {
                     enumValues[i] = field.getType().getEnumConstants()[i];
                 }
                 requestParam.setEnumValues(enumValues);
                 requestParam.setType("String");
-
-            }else {
-                System.out.println(field.getName());
             }
-//            else if(!field.getType().isInterface()) {
-//                requestParam.setParams(parseRequestParam(field.getType()));
-//            }
-
-            requestParam.setName(field.getName());
-            System.out.println("requestParam is"+requestParam);
+            // 如果是个数组，解析数组内的元素
+            else if(field.getType().isArray()) {
+                Field[] fields = field.getType().getFields();
+                requestParam.setName(field.getName());
+                if(fields.length>0){
+                    requestParam.setFields(parseRequestParam(fields[0].getType(),response));
+                }
+            }
+            else {
+                // 如果是标准库的集合类型
+                Class<?> c = isFieldCollection(field);
+                if(c!=null){
+                    requestParam.setFields(parseRequestParam(c,response));
+                }
+                // todo 其它类型暂不支持
+            }
+            if(requestParam.getName()==null){requestParam.setName(field.getName());}
             requestParams.add(requestParam);
 
         });
-
         return requestParams;
     }
 
 
 
-    /**
-     * @name parse the method  comment to Param
-     * @param comment @Ignore
-     * @param cl @Ignore
-     * @return
-     */
-    public static ControllerClass parseClassComment(Comment comment, Class<?> cl){
-
-        System.out.println(  " cl is "+cl+" comment is " +comment );
-        if(comment==null){return null;}
-        final ControllerClass controllerClass = new ControllerClass();
-        controllerClass.setAClass(cl);
-        Javadoc javadoc = comment.parse();
-        javadoc.getBlockTags().forEach(javadocBlockTag ->
-        {
-            // if contains `@ignore`
-            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.IGNORE)){
-                controllerClass.setIgnore(true);
-            }
-
-            // if contains `@name`
-            if (javadocBlockTag.getType().equals(JavadocBlockTag.Type.NAME)){
-                controllerClass.setName(javadocBlockTag.getContent().toText());
-            }
-
-            if(javadocBlockTag.getType().equals(JavadocBlockTag.Type.AUTHOR)){
-                controllerClass.setAuthor(javadocBlockTag.getContent().toText());
-            }
-
-        });
-
-        if(controllerClass.isIgnore()){return null;}
-        if(controllerClass.getName()==null){
-            controllerClass.setName(cl.getSimpleName());
-        }
-        controllerClass.setDescription(javadoc.getDescription().toText());
-
-        // handle url
-        Arrays.stream(cl.getAnnotations()).filter(annotation -> annotation.annotationType().getSimpleName().equals("RequestMapping"))
-                .forEach(annotation->{
-                    RequestMapping mapping = (RequestMapping) annotation;
-                    if(mapping.path().length>0){
-                        controllerClass.setUrl(mapping.path());
-                    } else if (mapping.value().length>0){
-                        controllerClass.setUrl(mapping.value());
-                    }else {
-                        controllerClass.setUrl(new String[]{""});
-                    }
-                });
-
-        return controllerClass;
-
-    }
 
 
     private static boolean isFieldPrimitive(Field field){
@@ -411,7 +364,11 @@ public class ClassUtils {
        Type t = field.getGenericType();
        if(t instanceof ParameterizedType){
            ParameterizedType pt = (ParameterizedType) t;
-           return  (Class) pt.getActualTypeArguments()[0];//得到对象list中实例的类型
+           try {
+               return AbstractParser.classLoader.loadClass(pt.getActualTypeArguments()[0].getTypeName())  ;//得到对象list中实例的类型
+           }catch (Exception e){
+               return null;
+           }
        }
        return null;
     }
@@ -435,6 +392,25 @@ public class ClassUtils {
 
 
 
+    private static boolean isTime(Class<?> c){
+        if(c.equals(LocalDateTime.class)){
+            return true;
+        }
+        if(c.equals(LocalDate.class)){
+            return true;
+        }
+        return false;
+    }
+
+
+    public static String[] methodSignature(Method method){
+        String[] strings = new String[method.getParameters().length];
+        for (int i = 0; i < method.getParameters().length; i++) {
+            strings[i] = method.getParameters()[i].getType().getSimpleName();
+        }
+        return strings;
+    }
+
 
 
     /**
@@ -446,6 +422,7 @@ public class ClassUtils {
        System.out.println(isPrimitive(Integer.class));
 
     }
+
 
 
 

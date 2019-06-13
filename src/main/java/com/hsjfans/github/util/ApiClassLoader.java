@@ -2,8 +2,6 @@ package com.hsjfans.github.util;
 
 import com.google.common.collect.Maps;
 import com.hsjfans.github.config.Config;
-
-import java.io.FileInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,6 +14,7 @@ import java.util.Map;
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
 public class ApiClassLoader extends ClassLoader {
+
 
     /**
      *  加载 jar 包内

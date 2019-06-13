@@ -20,7 +20,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RequestParam implements Serializable {
+public class ClassField implements Serializable {
 
 
     /**
@@ -49,10 +49,13 @@ public class RequestParam implements Serializable {
     private boolean fuzzy = false;
 
 
+    private boolean ignore = false;
+
+
     /**
-     *  is necessary or not
+     *  is nullable or not
      */
-    private boolean necessary = true;
+    private boolean nullable = false;
 
 
 
@@ -65,7 +68,7 @@ public class RequestParam implements Serializable {
     /**
      *  Collection  class
      */
-    private List<RequestParam> params;
+    private List<ClassField> fields;
 
 
     private Object[] enumValues;

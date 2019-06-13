@@ -1,13 +1,13 @@
 package com.hsjfans.github.util;
 
+import com.github.javaparser.javadoc.JavadocBlockTag;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.lang.annotation.Annotation;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.Parameter;
+import java.util.*;
 
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
@@ -56,4 +56,14 @@ public class CollectionUtil {
         return builder.toString();
     }
 
+
+    public static Optional<JavadocBlockTag> contains(List<JavadocBlockTag> javadocBlockTags, JavadocBlockTag.Type type){
+        for (JavadocBlockTag docTag:javadocBlockTags
+             ) {
+            if(docTag.is(type)){
+                return Optional.of(docTag);
+            }
+        }
+        return Optional.empty();
+    }
 }

@@ -1,15 +1,10 @@
 package com.hsjfans.github.model;
 
-import com.google.common.collect.Lists;
-import com.hsjfans.github.util.StringUtil;
 import lombok.Data;
-import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
@@ -47,9 +42,9 @@ public class ControllerMethod implements Serializable {
     private Class<?> aClass;
 
     /**
-     *  the args
+     *  the parameters of this method
      */
-    private List<RequestParam> params;
+    private List<RequestParameter> requestParameters;
 
 
     /**
@@ -66,10 +61,20 @@ public class ControllerMethod implements Serializable {
     /**
      *  author
      */
-    private String author = "";
+    private String author;
 
-    private String description = "";
 
+    /**
+     *  the description of this method
+     */
+    private String description;
+
+
+
+    public void fulfillReqestMapping(RequestMapping requestMapping){
+        this.url = requestMapping.getValue();
+        this.methods = requestMapping.getMethods();
+    }
 
 
 }

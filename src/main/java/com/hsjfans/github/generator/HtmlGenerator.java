@@ -149,19 +149,19 @@ public class HtmlGenerator extends AbstractGenerator {
     }
 
 
-    private String generateRequestParams(List<RequestParam> requestParams){
+    private String generateRequestParams(List<ClassField> requestParams){
         StringBuilder params = new StringBuilder();
         requestParams.forEach(requestParam->{
-            if(requestParam.getParams()!=null&&requestParam.getParams().size()>0){
+            if(requestParam.getFields()!=null&&requestParam.getFields().size()>0){
                 params.append(String.format(Request_Params_Table_No_head,
                         requestParam.getName(),
-                        Request_Params_Table_head.replace("${requestParams}",generateRequestParams(requestParam.getParams())),
-                        StringUtil.enumToStrs(requestParam.getEnumValues()),requestParam.isNecessary(),requestParam.isFuzzy(),
+                        Request_Params_Table_head.replace("${requestParams}",generateRequestParams(requestParam.getFields())),
+                        StringUtil.enumToStrs(requestParam.getEnumValues()),!requestParam.isNullable(),requestParam.isFuzzy(),
                         requestParam.getDescription()
                         ));
             }else {
                 params.append(String.format(Request_Params_Table_No_head,requestParam.getName(),requestParam.getType(),
-                        StringUtil.enumToStrs(requestParam.getEnumValues()),requestParam.isNecessary(),requestParam.isFuzzy(),
+                        StringUtil.enumToStrs(requestParam.getEnumValues()),!requestParam.isNullable(),requestParam.isFuzzy(),
                         requestParam.getDescription()));
             }
         });
@@ -192,13 +192,13 @@ public class HtmlGenerator extends AbstractGenerator {
         return responses.toString();
     }
 
-    private String generateResponseItems(List<RequestParam> requestParams){
+    private String generateResponseItems(List<ClassField> requestParams){
         StringBuilder responses = new StringBuilder();
         requestParams.forEach(requestParam -> {
-            if(requestParam.getParams()!=null&&requestParam.getParams().size()>0){
+            if(requestParam.getFields()!=null&&requestParam.getFields().size()>0){
                 responses.append(String.format(Response_Return_Table_No_Head,
                         requestParam.getName(),
-                        Response_Return_Table_Head.replace("${responses}",generateResponseItems(requestParam.getParams())),
+                        Response_Return_Table_Head.replace("${responses}",generateResponseItems(requestParam.getFields())),
                         StringUtil.enumToStrs(requestParam.getEnumValues()),
                         requestParam.getDescription()
                 ));

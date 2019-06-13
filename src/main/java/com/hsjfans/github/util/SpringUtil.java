@@ -3,9 +3,15 @@ package com.hsjfans.github.util;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.hsjfans.github.model.RequestMapping;
+import com.hsjfans.github.model.RequestMethod;
 import org.springframework.web.bind.annotation.*;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,30 +21,88 @@ import java.util.Set;
  */
 public class SpringUtil {
 
-    public static final Map<String,RequestMethod[]> map;
 
 
+    private static final List<String> SPRING_CONTROLLERS = Lists.newArrayList("Controller","RestController");
 
-    public static final List<String> SPRING_CONTROLLER_METHOD_NAMES= Lists.newArrayList(
-            PostMapping.class.getSimpleName(), DeleteMapping.class.getSimpleName(),
-            PutMapping.class.getSimpleName(), GetMapping.class.getSimpleName(),
-            PatchMapping.class.getSimpleName(), RequestMapping.class.getSimpleName()
+
+    /**
+     *  * @see GetMapping
+     *  * @see PutMapping
+     *  * @see DeleteMapping
+     *  * @see PatchMapping
+     *  * @see RequestMapping
+     */
+    private static final List<String> SUPPORT_REQUEST_MAPPING = Lists.newArrayList(
+            "PostMapping,GetMapping,DeleteMapping,PatchMapping,PutMapping"
     );
 
-    static {
-        map = Maps.newHashMap();
-        map.put( PostMapping.class.getSimpleName(),new RequestMethod[]{RequestMethod.POST});
-        map.put( DeleteMapping.class.getSimpleName(),new RequestMethod[]{RequestMethod.DELETE});
-        map.put( GetMapping.class.getSimpleName(),new RequestMethod[]{RequestMethod.GET});
-        map.put( PutMapping.class.getSimpleName(),new RequestMethod[]{RequestMethod.PUT});
-        map.put( PatchMapping.class.getSimpleName(),new RequestMethod[]{RequestMethod.PATCH});
-        map.put( RequestMapping.class.getSimpleName(),new RequestMethod[]{});
 
+    private static final String REQUEST_MAPPING = "RequestMapping";
 
+    public static boolean isControllerClass(Annotation[] annotations){
+
+        for (Annotation a:annotations
+             ) {
+            if(SPRING_CONTROLLERS.contains(a.annotationType().getSimpleName())){
+                return true;
+            }
+        }
+        return false;
     }
 
 
 
+    public static RequestMapping parseRequestMapping(Annotation annotation){
+
+        RequestMapping requestMapping = new RequestMapping();
+        String name = annotation.annotationType().getSimpleName();
+        try {
+            if(name.equals(REQUEST_MAPPING)){
+                Method method = annotation.getClass().getMethod("method");
+                Object requestMethods = method.invoke(annotation);
+                if(requestMethods.getClass().isArray()){
+                    RequestMethod[] ms = new RequestMethod[((Object[]) requestMethods).length];
+                    for (int i = 0; i <ms.length ; i++) {
+                        ms[i] = RequestMethod.valueOf(((Enum)(((Object[]) requestMethods)[i])).name());
+                    }
+                    requestMapping.setMethods(ms);
+                }
+            }
+
+            if(SUPPORT_REQUEST_MAPPING.contains(name)||name.equals(REQUEST_MAPPING)){
+
+                Method valueMethod = annotation.getClass().getMethod("value");
+                String[] values = (String[]) valueMethod.invoke(annotation);
+                requestMapping.setValue(values);
+                Method pathMethod = annotation.getClass().getMethod("path");
+                String[] paths = (String[]) pathMethod.invoke(annotation);
+                if(paths.length>0){
+                    requestMapping.setValue(paths);
+                }
+            }
+
+
+
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            // nothing to do
+        }
+
+
+        return requestMapping;
+
+    }
+
+
+    public static boolean isSpringRequestAnnotation(Annotation annotation){
+        String name = annotation.annotationType().getSimpleName();
+        return name.equals(REQUEST_MAPPING)||SUPPORT_REQUEST_MAPPING.contains(name);
+    }
+
+
+    public static boolean isSpringMethods(Method method){
+        return Arrays.stream(method.getAnnotations()).anyMatch(SpringUtil::isSpringRequestAnnotation);
+    }
 
 
 }
