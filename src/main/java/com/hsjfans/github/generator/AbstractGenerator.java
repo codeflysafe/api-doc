@@ -5,7 +5,6 @@ import com.hsjfans.github.model.ControllerClass;
 import com.hsjfans.github.model.ControllerMethod;
 
 /**
- *
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
 public abstract class AbstractGenerator implements Generator {

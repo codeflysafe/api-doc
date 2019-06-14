@@ -29,9 +29,15 @@ public class Config {
     private boolean gradle;
 
 
+    /**
+     *  the repository of gradle
+     */
     private String gradlePath;
 
 
+    /**
+     *  the repository of maven
+     */
     private String mvnPath;
 
 

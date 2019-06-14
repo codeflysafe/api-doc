@@ -4,16 +4,31 @@ package com.hsjfans.github.util;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.hsjfans.github.parser.AbstractParser;
-import com.hsjfans.github.parser.ParserException;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.lang.reflect.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
 public class ClassUtils {
+
+
+
+    /**
+     * 从 jar 内加载  类
+     * @param name name
+     * @return
+     */
+    private static void findFromJar(String name){
+
+
+
+    }
+
 
     /**
      *
@@ -105,26 +120,13 @@ public class ClassUtils {
             return true;
         }
         try {
-//            System.out.println(cl.getField("TYPE"));
             return  ((Class)(cl.getField("TYPE").get(null))).isPrimitive();
         } catch (NoSuchFieldException | IllegalAccessException e) {
-//            System.out.println(e);
         }
         return false;
 
     }
 
-    private static Class<?> isFieldCollection(Field field){
-
-       Type t = field.getGenericType();
-       return isCollection(t);
-    }
-
-
-    private static Class<?> isParameterCollection(Parameter parameter){
-        Type t = parameter.getParameterizedType();
-        return isCollection(t);
-    }
 
     public static Class<?> isCollection(Type t){
         if(t instanceof ParameterizedType){
@@ -172,13 +174,25 @@ public class ClassUtils {
     }
 
 
-    /**
-     * @see #toString()
-     * @param args args
-     */
-    public static void main(String[] args) throws  ParserException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
 
-       System.out.println(isPrimitive(Integer.class));
+        String path = "file:/Volumes/doc/projects/java/java-api-doc/build/libs/java-api-doc-1.0-SNAPSHOT.jar";
+        URL url = new URL(path);
+        System.out.println(url);
+        URLClassLoader urlClassLoader = new URLClassLoader(new URL[]{url},Thread.currentThread().getContextClassLoader());
+
+        InputStream inputStream = urlClassLoader.getResourceAsStream("com.hsjfans.github.parser.ClassFieldParser");
+
+        System.out.println(inputStream);
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
+        StringBuffer buffer = new StringBuffer();
+        String line = "";
+        while ((line = in.readLine()) != null){
+            buffer.append(line);
+        }
+
+        System.out.println(buffer.toString());
 
     }
 

@@ -7,12 +7,10 @@ public class Constant {
 
 
     /**
-     *
      * parseClassType 枚举类型
-     *
+     * <p>
      * CONTROLLERCLASS: 代表的是 controllerClass 类
      * PARAMETERCLASS: 代表参数类型
-     *
      */
     public static enum SpirngParseClassType {
 
@@ -22,7 +20,7 @@ public class Constant {
     }
 
 
-    public static enum RequestMethod{
+    public static enum RequestMethod {
 
     }
 

@@ -1,14 +1,10 @@
 package com.hsjfans.github.parser;
 
-import com.github.javaparser.ast.CompilationUnit;
-import com.hsjfans.github.config.Config;
 import com.hsjfans.github.model.ApiTree;
 
 import java.util.List;
-import java.util.Map;
 
 /**
- *
  * 解析器
  *
  * @author hsjfans[hsjfans.scholar@gmail.com]
@@ -16,28 +12,24 @@ import java.util.Map;
 public interface Parser {
 
 
-   /**
-    *
-    * parse the project
-    *
-    *
-    * @param projectPath project path
-    * @param recursive recursive scan or not
-    * @throws ParserException
-    */
-   ApiTree parse(String projectPath, boolean recursive) throws ParserException;
+    /**
+     * parse the project
+     *
+     * @param projectPath project path
+     * @param recursive   recursive scan or not
+     * @throws ParserException
+     */
+    ApiTree parse(String projectPath, boolean recursive) throws ParserException;
 
 
-   /**
-    *
-    *
-    * parse the multi-project
-    *
-    * @param projectPaths multi-project path
-    * @param recursive recursive scan or not
-    * @throws ParserException
-    */
-   ApiTree parse(List<String> projectPaths,boolean recursive) throws ParserException;
+    /**
+     * parse the multi-project
+     *
+     * @param projectPaths multi-project path
+     * @param recursive    recursive scan or not
+     * @throws ParserException
+     */
+    ApiTree parse(List<String> projectPaths, boolean recursive) throws ParserException;
 
 
 //   /**
@@ -47,7 +39,6 @@ public interface Parser {
 //    * @throws ParserException
 //    */
 //   ApiTree parse(String file) throws ParserException;
-
 
 
 }

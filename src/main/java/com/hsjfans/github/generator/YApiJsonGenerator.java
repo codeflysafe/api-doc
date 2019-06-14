@@ -6,7 +6,6 @@ import com.hsjfans.github.model.ControllerClass;
 import com.hsjfans.github.model.ControllerMethod;
 
 /**
- *
  * yapi Json 生成
  *
  * @author hsjfans[hsjfans.scholar@gmail.com]

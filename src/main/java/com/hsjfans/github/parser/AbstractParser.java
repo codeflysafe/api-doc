@@ -36,7 +36,7 @@ public abstract class AbstractParser implements Parser  {
 
     public AbstractParser(Config config){
         this.config = config;
-        classLoader = new ApiClassLoader(config);
+        classLoader = new GradleClassLoader(config);
         this.apiTree = new ApiTree();
     }
 

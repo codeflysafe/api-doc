@@ -17,9 +17,17 @@ public class ApiClassLoader extends ClassLoader {
 
 
     /**
+     *  the dir path of class
+     *  default is project+ /out/production/classes
+     */
+    protected String projectPath;
+
+    /**
      *  加载 jar 包内
      */
-    private Map<String,byte[]> jarMap;
+    protected Map<String,byte[]> jarMap;
+
+    protected Config config;
 
     public ApiClassLoader(String projectPath){
         this.projectPath = projectPath;
@@ -28,24 +36,19 @@ public class ApiClassLoader extends ClassLoader {
 
     public ApiClassLoader(Config config){
         this(config.getClassPath());
+        this.config = config;
         if(config.getClassPath()==null){
             this.projectPath= config.getPackageName()+"/out/production/classes";
         }
     }
 
-    /**
-     *  the dir path of class
-     *  default is project+ /out/production/classes
-     */
-    private String projectPath;
 
 
-    private byte[] loadByte(String name) throws Exception {
+    protected byte[] loadByte(String name) throws Exception {
         name = name.replaceAll("\\.", "/");
         Path path = Paths.get(projectPath + "/" + name
                 + ".class");
         return  Files.readAllBytes(path);
-
     }
 
     @Override

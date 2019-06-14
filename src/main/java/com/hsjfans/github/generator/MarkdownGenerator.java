@@ -6,7 +6,6 @@ import com.hsjfans.github.model.ControllerClass;
 import com.hsjfans.github.model.ControllerMethod;
 
 /**
- *
  * markdown 文档生成器
  *
  * @author hsjfans[hsjfans.scholar@gmail.com]

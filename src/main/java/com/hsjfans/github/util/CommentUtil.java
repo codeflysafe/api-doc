@@ -2,15 +2,11 @@ package com.hsjfans.github.util;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.comments.Comment;
-import com.github.javaparser.ast.comments.JavadocComment;
-import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.javadoc.Javadoc;
-import com.google.common.collect.Lists;
 
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author hsjfans[hsjfans.scholar@gmail.com]
@@ -21,11 +17,12 @@ public class CommentUtil {
     private static Pattern BLOCK_PATTERN = Pattern.compile("^\\s*" + BLOCK_TAG_PREFIX, Pattern.MULTILINE);
 
     /**
-     *  解析
+     * 解析
+     *
      * @param comment comment
      * @return
      */
-    public static List<Map<String,String>> parseParam(Comment comment){
+    public static List<Map<String, String>> parseParam(Comment comment) {
 
         Javadoc javadoc = comment.parse();
 

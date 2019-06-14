@@ -16,29 +16,28 @@ import java.util.List;
 public class SpringUtil {
 
 
-
-    private static final List<String> SPRING_CONTROLLERS = Lists.newArrayList("Controller","RestController");
+    private static final List<String> SPRING_CONTROLLERS = Lists.newArrayList("Controller", "RestController");
 
 
     /**
-     *  * @see GetMapping
-     *  * @see PutMapping
-     *  * @see DeleteMapping
-     *  * @see PatchMapping
-     *  * @see RequestMapping
+     * * @see GetMapping
+     * * @see PutMapping
+     * * @see DeleteMapping
+     * * @see PatchMapping
+     * * @see RequestMapping
      */
     private static final List<String> SUPPORT_REQUEST_MAPPING = Lists.newArrayList(
-            "PostMapping","GetMapping","DeleteMapping","PatchMapping","PutMapping"
+            "PostMapping", "GetMapping", "DeleteMapping", "PatchMapping", "PutMapping"
     );
 
 
     private static final String REQUEST_MAPPING = "RequestMapping";
 
-    public static boolean isControllerClass(Annotation[] annotations){
+    public static boolean isControllerClass(Annotation[] annotations) {
 
-        for (Annotation a:annotations
-             ) {
-            if(SPRING_CONTROLLERS.contains(a.annotationType().getSimpleName())){
+        for (Annotation a : annotations
+        ) {
+            if (SPRING_CONTROLLERS.contains(a.annotationType().getSimpleName())) {
                 return true;
             }
         }
@@ -46,45 +45,43 @@ public class SpringUtil {
     }
 
 
-
-    public static RequestMapping parseRequestMapping(Annotation annotation){
+    public static RequestMapping parseRequestMapping(Annotation annotation) {
 
         RequestMapping requestMapping = new RequestMapping();
         String name = annotation.annotationType().getSimpleName();
         try {
-            if(REQUEST_MAPPING.equals(name)){
+            if (REQUEST_MAPPING.equals(name)) {
                 Method method = annotation.getClass().getMethod("method");
                 Object requestMethods = method.invoke(annotation);
-                if(requestMethods.getClass().isArray()){
+                if (requestMethods.getClass().isArray()) {
                     RequestMethod[] ms = new RequestMethod[((Object[]) requestMethods).length];
-                    for (int i = 0; i <ms.length ; i++) {
-                        ms[i] = RequestMethod.valueOf(((Enum)(((Object[]) requestMethods)[i])).name());
+                    for (int i = 0; i < ms.length; i++) {
+                        ms[i] = RequestMethod.valueOf(((Enum) (((Object[]) requestMethods)[i])).name());
                     }
                     requestMapping.setMethods(ms);
                 }
-            }else if(SUPPORT_REQUEST_MAPPING.contains(name)){
-                requestMapping.setMethods(new RequestMethod[]{RequestMethod.valueOf(name.replaceAll("Mapping","").toUpperCase())});
+            } else if (SUPPORT_REQUEST_MAPPING.contains(name)) {
+                requestMapping.setMethods(new RequestMethod[]{RequestMethod.valueOf(name.replaceAll("Mapping", "").toUpperCase())});
             }
 
-            if(SUPPORT_REQUEST_MAPPING.contains(name)||name.equals(REQUEST_MAPPING)){
+            if (SUPPORT_REQUEST_MAPPING.contains(name) || name.equals(REQUEST_MAPPING)) {
 
                 Method valueMethod = annotation.getClass().getMethod("value");
                 String[] values = (String[]) valueMethod.invoke(annotation);
-                if(values!=null){
+                if (values != null) {
                     requestMapping.setValue(values);
                 }
                 Method pathMethod = annotation.getClass().getMethod("path");
                 String[] paths = (String[]) pathMethod.invoke(annotation);
-                if(paths.length>0){
+                if (paths.length > 0) {
                     requestMapping.setValue(paths);
                 }
             }
 
 
-
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             // nothing to do
-            LogUtil.error(" e= {}",e);
+            LogUtil.error(" e= {}", e);
         }
 
         return requestMapping;
@@ -92,15 +89,15 @@ public class SpringUtil {
     }
 
 
-    public static boolean isSpringRequestAnnotation(Annotation annotation){
+    public static boolean isSpringRequestAnnotation(Annotation annotation) {
         String name = annotation.annotationType().getSimpleName().trim();
 //        System.out.println(name+"  "+SUPPORT_REQUEST_MAPPING);
-        return name.equals(REQUEST_MAPPING)||SUPPORT_REQUEST_MAPPING.contains(name);
+        return name.equals(REQUEST_MAPPING) || SUPPORT_REQUEST_MAPPING.contains(name);
 //        return name.equals("GetMapping");
     }
 
 
-    public static boolean isSpringMethods(Method method){
+    public static boolean isSpringMethods(Method method) {
         return Arrays.stream(method.getAnnotations()).anyMatch(SpringUtil::isSpringRequestAnnotation);
     }
 

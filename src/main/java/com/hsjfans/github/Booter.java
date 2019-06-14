@@ -9,24 +9,25 @@ import com.hsjfans.github.parser.ParserException;
 import com.hsjfans.github.parser.SpringParser;
 
 /**
- *
- *  Booter 启动器
+ * Booter 启动器
  *
  * @author hsjfans[hsjfans.scholar@gmail.com]
  */
 public class Booter {
 
+
     public static void main(String[] args) throws ParserException {
 
-        String realPath = "/Volumes/doc/projects/java/java-api-doc/spring-api-demo";
+        String realPath = "/Volumes/doc/projects/java/api";
         Config config = new Config();
         config.setPackageName(realPath);
-        config.setDocName("demo接口文档");
-        config.setApiName("demo");
+        config.setDocName("api接口文档");
+        config.setApiName("api");
+        config.setGradlePath("/Users/hsjfans/.m2/repository");
         Parser parser = new SpringParser(config);
-        ApiTree apiTree = parser.parse(config.getPackageName(),true);
+        ApiTree apiTree = parser.parse(config.getPackageName(), true);
         Generator generator = new HtmlGenerator();
-        generator.from(apiTree,config);
+        generator.from(apiTree, config);
 
     }
 }
