@@ -3,6 +3,8 @@ Welcome to the api-doc wiki!
 ![](https://raw.githubusercontent.com/hsjfans/git_resource/master/20190609204505.png)
 
 
+It is suspend due to prepare for `2019-postgraduate-preliminary-test`
+
 [English](./readme.md) [简体中文](./readme_zh.md)
 
 ## Aim

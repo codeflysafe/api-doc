@@ -6,3 +6,6 @@ out/
 src/static/api/
 build/
 spring-api-demo/build/
+src/.DS_Store
+src/static/.DS_Store
+
