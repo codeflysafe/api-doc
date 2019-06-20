@@ -9,19 +9,24 @@ import lombok.Data;
 public class Config {
 
     /**
-     *  package name
+     * package name
      */
     private String packageName;
 
     /**
      * the path to store the generated docs
-     *
+     * <p>
      * default is src/static/
      */
     private String outPath = "src/static/";
 
     /**
-     *  the path of classes files
+     * the default build jar path
+     */
+    private String jarPath = "build/libs/";
+
+    /**
+     * the path of classes files
      */
     private String classPath;
 
@@ -30,19 +35,19 @@ public class Config {
 
 
     /**
-     *  the repository of gradle
+     * the repository of gradle
      */
     private String gradlePath;
 
 
     /**
-     *  the repository of maven
+     * the repository of maven
      */
     private String mvnPath;
 
 
     /**
-     *  api doc name  -  xxx 接口文档
+     * api doc name  -  xxx 接口文档
      */
     private String docName;
 
@@ -50,10 +55,9 @@ public class Config {
     private String apiName;
 
 
-    public String getOutPath(){
-        return this.outPath+this.apiName+"/";
+    public String getOutPath() {
+        return this.outPath + this.apiName + "/";
     }
-
 
 
 }
